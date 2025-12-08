@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Laravel application service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-app
+    ports:
+      - "8000:80"  # Map port 80 of the container to port 8000 on your host machine
+    volumes:
+      - .:/var/www/html  # Mount your local application code into the container
+    depends_on:
+      - mysql  # Ensure MySQL container is ready before the app starts
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=shemaksolutions
+      - DB_USERNAME=root
+      - DB_PASSWORD=rootpassword  # Replace with your own password
+
+  # MySQL service
+  mysql:
+    image: mysql:8
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword  # Change this to a secure password
+      MYSQL_DATABASE: shemaksolutions  # The database that will be created
+      MYSQL_USER: youruser  # Optional: create a user for Laravel
+      MYSQL_PASSWORD: yourpassword  # Optional: password for Laravel user
+    ports:
+      - "3306:3306"  # Expose MySQL port
+    volumes:
+      - mysql-data:/var/lib/mysql  # Persistent data storage for MySQL
+
+volumes:
+  mysql-data:

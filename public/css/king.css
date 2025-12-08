@@ -1,0 +1,28 @@
+/* Custom styles for K.I.N.G. registration and dark theme */
+body.bg-king-dark {
+  background-color: #0c1018;
+}
+.king-card {
+  background-color: #181e29;
+  border: 1px solid #1e293b;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+}
+.king-input {
+  background-color: #141821;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+.king-input:focus {
+  border-color: #0ea5e9;
+  outline: none;
+}
+.king-label {
+  color: #94a3b8;
+}
+.king-title {
+  color: #22d3ee;
+  font-weight: 800;
+}
