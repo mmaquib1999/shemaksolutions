@@ -7,7 +7,7 @@
 - Invited by: {{ $invitation->owner->email ?? 'n/a' }}
 
 @component('mail::button', ['url' => $acceptUrl])
-Accept Invitation
+Accept Invitation & Set Password
 @endcomponent
 
 If the button does not work, copy and paste this link in your browser:

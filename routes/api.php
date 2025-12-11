@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 use App\Http\Controllers\Api\AiProviderKeyController;
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\UsageController;
 use App\Http\Controllers\AskKingController;
@@ -28,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::put('/account', [AccountController::class, 'update']);
+
     Route::get('/team', [TeamController::class, 'index']);
     Route::post('/team/invitations', [TeamController::class, 'invite']);
     Route::delete('/team/members/{member}', [TeamController::class, 'destroy']);

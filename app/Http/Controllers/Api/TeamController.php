@@ -85,24 +85,46 @@ class TeamController extends Controller
             'role' => ['required', Rule::in(['admin', 'member'])],
         ]);
 
+        $invitee = User::firstOrCreate(
+            ['email' => $validated['email']],
+            [
+                'name' => $validated['name'],
+                // random placeholder password until the invitee sets their own
+                'password' => Hash::make(Str::random(40)),
+                'company' => '',
+            ]
+        );
+
+        // ensure name is populated for existing users
+        if (!$invitee->name && $validated['name']) {
+            $invitee->forceFill(['name' => $validated['name']])->save();
+        }
+
         $token = Str::random(40);
 
         $invitation = TeamMember::create([
             'owner_id' => $user->id,
             'invited_by' => $user->id,
+            'user_id' => $invitee->id,
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
             'status' => 'pending',
             'invitation_token' => $token,
+            'accepted_at' => null,
         ]);
 
-        Mail::to($invitation->email)->send(new TeamInvitationMail($invitation));
+        Mail::to($invitation->email)->send(new TeamInvitationMail($invitation, $this->buildAcceptUrl($invitation)));
 
         return response()->json([
             'message' => 'Invitation sent.',
             'invitation' => $invitation,
         ], 201);
+    }
+
+    protected function buildAcceptUrl(TeamMember $invitation): string
+    {
+        return route('invitations.accept', ['token' => $invitation->invitation_token]);
     }
 
     public function showInvitation(string $token)
@@ -144,7 +166,14 @@ class TeamController extends Controller
                 'name' => $name,
                 'email' => $invitation->email,
                 'password' => Hash::make($validated['password']),
+                'company' => '',
             ]);
+        } else {
+            // update name/password on acceptance
+            $user->forceFill([
+                'name' => $name,
+                'password' => Hash::make($validated['password']),
+            ])->save();
         }
 
         $invitation->update([
