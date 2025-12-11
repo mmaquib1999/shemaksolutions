@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\TeamMember;
+use App\Models\AiProviderKey;
 
 class User extends Authenticatable
 {
@@ -43,4 +45,19 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function teamInvitations()
+    {
+        return $this->hasMany(TeamMember::class, 'owner_id');
+    }
+
+    public function teamMemberships()
+    {
+        return $this->hasMany(TeamMember::class);
+    }
+
+    public function aiProviderKeys()
+    {
+        return $this->hasMany(AiProviderKey::class);
+    }
 }

@@ -3,48 +3,58 @@
     <div class="top">
       <div>
         <p class="muted">Manage your team members</p>
-        <p class="muted fine">{{ members.length }} of 10 seats used</p>
+        <p class="muted fine">{{ members.length }} of {{ seatLimit }} seats used</p>
       </div>
       <button class="btn" @click="openInvite">+ Invite</button>
     </div>
 
     <div class="card list-card">
-      <div
-        v-for="(member, idx) in members"
-        :key="member.id"
-        class="row"
-        :class="{ last: idx === members.length - 1 }"
-      >
-        <div class="user">
-          <div class="avatar">{{ member.name.charAt(0) }}</div>
-          <div>
-            <div class="name">{{ member.name }}</div>
-            <div class="email">{{ member.email }}</div>
-            <div class="badges">
-              <span
-                v-for="badge in member.badges"
-                :key="badge"
-                class="badge"
-                :class="badgeClass(badge)"
-              >
-                {{ badgeLabel(badge) }}
-              </span>
+      <div v-if="loading" class="empty-state">Loading team...</div>
+      <div v-else-if="!members.length" class="empty-state muted">No team members yet.</div>
+      <template v-else>
+        <div
+          v-for="(member, idx) in members"
+          :key="member.id || member.email"
+          class="row"
+          :class="{ last: idx === members.length - 1 }"
+        >
+          <div class="user">
+            <div class="avatar">{{ avatarInitial(member.name) }}</div>
+            <div>
+              <div class="name">{{ member.name }}</div>
+              <div class="email">{{ member.email }}</div>
             </div>
           </div>
+          <div class="meta">
+            <span class="role" :style="{ background: roleColor(member.role).bg, color: roleColor(member.role).fg }">
+              {{ roleLabel(member.role) }}
+            </span>
+            <span
+              class="role status"
+              v-if="!member.is_owner"
+              :style="{ background: statusColor(member).bg, color: statusColor(member).fg }"
+            >
+              {{ statusLabel(member) }}
+            </span>
+            <span class="queries muted">{{ (member.total_queries ?? 0).toLocaleString() }} queries</span>
+          </div>
+          <button
+            v-if="!member.is_owner"
+            class="ghost-btn"
+            aria-label="Remove member"
+            title="Remove member"
+            @click="removeMember(member)"
+            :disabled="deletingId === (member.id || member.email) || sendingDelete"
+          >
+            ✕
+          </button>
         </div>
-        <div class="meta">
-          <span class="role" :style="{ background: roleColor(member.role).bg, color: roleColor(member.role).fg }">
-            {{ roleLabel(member.role) }}
-          </span>
-          <span class="muted">{{ member.queries }} queries</span>
-        </div>
-        <button v-if="member.role !== 'owner'" class="ghost-btn" aria-label="Remove">✕</button>
-      </div>
+      </template>
     </div>
 
     <div class="card highlight">
       <div class="challenge">
-        <div class="icon">🎉</div>
+        <div class="icon">XYZ%</div>
         <div class="copy">
           <h3>Invite Challenge Active!</h3>
           <p>Invite 2 more team members and everyone gets a <span class="accent">20% discount</span> on upgrades.</p>
@@ -58,16 +68,18 @@
       <div class="modal">
         <div class="modal-head">
           <h3>Invite Teammate</h3>
-          <button class="ghost-btn" @click="closeInvite" aria-label="Close">✕</button>
+          <button class="ghost-btn" @click="closeInvite" aria-label="Close">x</button>
         </div>
         <div class="modal-body">
           <div class="field">
             <label class="label">Name</label>
             <input v-model="inviteForm.name" type="text" class="input" placeholder="e.g., Jane Doe" />
+            <span v-if="inviteForm.errors.has('name')" class="error">{{ inviteForm.errors.get('name') }}</span>
           </div>
           <div class="field">
             <label class="label">Email</label>
             <input v-model="inviteForm.email" type="email" class="input" placeholder="name@company.com" />
+            <span v-if="inviteForm.errors.has('email')" class="error">{{ inviteForm.errors.get('email') }}</span>
           </div>
           <div class="field">
             <label class="label">Role</label>
@@ -79,7 +91,10 @@
         </div>
         <div class="modal-actions">
           <button class="btn-secondary" @click="closeInvite">Cancel</button>
-          <button class="btn" @click="sendInvite">Send Invite</button>
+          <button class="btn" @click="sendInvite" :disabled="inviteForm.busy">
+            <span v-if="inviteForm.busy">Sending...</span>
+            <span v-else>Send Invite</span>
+          </button>
         </div>
         <p v-if="inviteError" class="error">{{ inviteError }}</p>
         <p v-if="inviteSuccess" class="success">{{ inviteSuccess }}</p>
@@ -89,23 +104,32 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import axios from 'axios'
+import { onMounted, reactive, ref } from 'vue'
+import { Form } from 'vform'
 
-const members = [
-  { id: 1, name: 'Alex Johnson', email: 'alex@example.com', role: 'owner', queries: 520, badges: ['loto', 'fire'] },
-  { id: 2, name: 'Priya Singh', email: 'priya@example.com', role: 'admin', queries: 410, badges: ['ppe'] },
-  { id: 3, name: 'Michael Chen', email: 'michael@example.com', role: 'member', queries: 320, badges: ['electrical'] },
-  { id: 4, name: 'Sara Lopez', email: 'sara@example.com', role: 'member', queries: 260, badges: [] },
-]
+const members = ref([])
+const seatLimit = ref(10)
+const loading = ref(false)
 
 const showInvite = ref(false)
 const inviteError = ref('')
 const inviteSuccess = ref('')
-const inviteForm = reactive({
-  name: '',
-  email: '',
-  role: 'member',
-})
+const inviteForm = reactive(
+  new Form({
+    name: '',
+    email: '',
+    role: 'member',
+  })
+)
+const deletingId = ref(null)
+const sendingDelete = ref(false)
+
+onMounted(loadMembers)
+
+function avatarInitial(name = '') {
+  return name?.trim()?.charAt(0)?.toUpperCase() || '?'
+}
 
 function roleLabel(role) {
   if (role === 'owner') return 'Owner'
@@ -119,43 +143,116 @@ function roleColor(role) {
   return { bg: 'rgba(59,130,246,0.2)', fg: '#3b82f6' }
 }
 
-function badgeClass(badge) {
-  return {
-    loto: 'badge-loto',
-    ppe: 'badge-ppe',
-    fire: 'badge-fire',
-    electrical: 'badge-electrical',
-  }[badge] || ''
+function statusLabel(member) {
+  if (member.is_owner) return 'Owner'
+  if (member.status === 'accepted' || member.status === 'active') return 'Joined'
+  return 'Pending invite'
 }
 
-function badgeLabel(badge) {
-  return {
-    loto: 'LOTO',
-    ppe: 'PPE',
-    fire: 'Fire',
-    electrical: 'Electrical',
-  }[badge] || badge
+function statusColor(member) {
+  if (member.is_owner) return roleColor('owner')
+  if (member.status === 'accepted' || member.status === 'active') return roleColor('member')
+  return { bg: 'rgba(14,165,233,0.24)', fg: '#ffffff' } // pending invite
 }
 
 function openInvite() {
   inviteError.value = ''
   inviteSuccess.value = ''
+  inviteForm.errors.clear()
   showInvite.value = true
 }
 
 function closeInvite() {
+  inviteForm.errors.clear()
   showInvite.value = false
 }
 
-function sendInvite() {
+function resetInviteForm() {
+  inviteForm.reset()
+}
+
+async function loadMembers() {
+  loading.value = true
+  inviteError.value = ''
+  try {
+    const { data } = await axios.get('/api/team')
+    members.value = data?.members || []
+    seatLimit.value = data?.seat_limit || data?.seatLimit || members.value.length
+  } catch (error) {
+    inviteError.value = errorMessage(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function sendInvite() {
   inviteError.value = ''
   inviteSuccess.value = ''
-  if (!inviteForm.name.trim() || !inviteForm.email.trim()) {
-    inviteError.value = 'Please enter a name and email.'
+  inviteForm.errors.clear()
+
+  const name = inviteForm.name?.trim()
+  const email = inviteForm.email?.trim()
+
+  const fieldErrors = {}
+  if (!name) fieldErrors.name = ['Name is required.']
+  if (!email) fieldErrors.email = ['Email is required.']
+
+  if (Object.keys(fieldErrors).length) {
+    inviteForm.errors.set(fieldErrors)
+    inviteError.value = 'Please fix the highlighted fields.'
     return
   }
-  // placeholder for API call
-  inviteSuccess.value = `Invite sent to ${inviteForm.email}`
+
+  inviteForm.name = name
+  inviteForm.email = email
+
+  try {
+    await inviteForm.post('/api/team/invitations')
+    inviteSuccess.value = `Invite sent to ${inviteForm.email}`
+    resetInviteForm()
+    showInvite.value = false
+    loadMembers()
+  } catch (error) {
+    inviteError.value = errorMessage(error)
+  }
+}
+
+async function removeMember(member) {
+  if (!member?.id && !member?.email) {
+    inviteError.value = 'Cannot remove member: missing id or email.'
+    return
+  }
+
+  const identifier = member.name || member.email || member.id
+  const ok = window.confirm(`Remove ${identifier || 'this member'}?`)
+  if (!ok) return
+
+  inviteError.value = ''
+  const key = member.id || member.email
+  deletingId.value = key
+  sendingDelete.value = true
+
+  try {
+    const endpoint = member.id ? `/api/team/members/${member.id}` : '/api/team/members'
+    const config = member.id ? undefined : { data: { email: member.email } }
+    await axios.delete(endpoint, config)
+    await loadMembers()
+  } catch (error) {
+    inviteError.value = errorMessage(error)
+  } finally {
+    deletingId.value = null
+    sendingDelete.value = false
+  }
+}
+
+function errorMessage(error) {
+  if (error?.response?.data?.errors) {
+    const first = Object.values(error.response.data.errors)[0]
+    if (Array.isArray(first) && first.length) return first[0]
+  }
+  if (error?.response?.data?.message) return error.response.data.message
+  if (error?.message) return error.message
+  return 'Something went wrong'
 }
 </script>
 
@@ -258,9 +355,11 @@ function sendInvite() {
 
 .meta {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .role {
@@ -268,6 +367,16 @@ function sendInvite() {
   border-radius: 10px;
   font-weight: 700;
   font-size: 11px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.queries {
+  font-size: 12px;
 }
 
 .muted {
@@ -285,6 +394,11 @@ function sendInvite() {
   cursor: pointer;
   padding: 6px;
   font-size: 14px;
+}
+
+.ghost-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .challenge {
@@ -410,9 +524,15 @@ function sendInvite() {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
 }
 
+.empty-state {
+  padding: 18px;
+  text-align: center;
+}
+
 @media (max-width: 700px) {
   .meta {
     align-items: flex-start;
+    justify-content: flex-start;
   }
 }
 </style>

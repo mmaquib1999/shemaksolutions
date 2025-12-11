@@ -28,7 +28,7 @@
             <span v-else-if="idx === 2">🥉</span>
             <span v-else>#{{ idx + 1 }}</span>
           </div>
-          <div class="avatar">{{ member.name.charAt(0) }}</div>
+          <div class="avatar">{{ avatarInitial(member.name) }}</div>
           <div class="meta">
             <div class="name">{{ member.name }}</div>
             <div class="badges">
@@ -63,9 +63,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, ref } from 'vue'
 
-const members = [
+const MAX_LEADERS = 5
+const fallbackMembers = [
   { id: 1, name: 'Alex Johnson', queries: 240, streak: 6, badges: ['loto', 'fire'] },
   { id: 2, name: 'Priya Singh', queries: 210, streak: 4, badges: ['ppe'] },
   { id: 3, name: 'Michael Chen', queries: 180, streak: 3, badges: ['electrical'] },
@@ -73,7 +75,34 @@ const members = [
   { id: 5, name: 'Daniel Park', queries: 120, streak: 1, badges: [] },
 ]
 
-const sorted = computed(() => [...members].sort((a, b) => b.queries - a.queries))
+const members = ref([])
+
+onMounted(loadLeaderboard)
+
+async function loadLeaderboard() {
+  try {
+    const { data } = await axios.get('/api/team')
+    const apiMembers = (data?.members || []).map((m) => ({
+      id: m.id || m.email,
+      name: m.name || m.email || 'Member',
+      queries: Number(m.total_queries ?? m.queries ?? 0),
+      streak: m.streak ?? 0,
+      badges: badgesForRole(m.role, m.is_owner),
+    }))
+    members.value = apiMembers
+  } catch (error) {
+    // keep fallback data if API fails or unauthenticated
+    console.warn('Failed to load leaderboard data; showing fallback.', error?.message)
+    members.value = fallbackMembers
+  }
+}
+
+// Only expose the top leaders; API may return more members
+const sorted = computed(() =>
+  [...members.value]
+    .sort((a, b) => b.queries - a.queries)
+    .slice(0, MAX_LEADERS)
+)
 
 function rankClass(idx) {
   if (idx === 0) return 'gold'
@@ -98,6 +127,16 @@ function badgeLabel(badge) {
     fire: 'Fire',
     electrical: 'Electrical',
   }[badge] || badge
+}
+
+function avatarInitial(name = '') {
+  return name?.trim()?.charAt(0)?.toUpperCase() || '?'
+}
+
+function badgesForRole(role, isOwner) {
+  if (isOwner) return ['loto', 'fire', 'ppe']
+  if (role === 'admin') return ['ppe']
+  return []
 }
 </script>
 

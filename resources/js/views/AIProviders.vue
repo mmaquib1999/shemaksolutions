@@ -175,8 +175,10 @@
           </button>
 
           <button
-            @click="deleteKey(key.id)"
+            @click="deleteKey(key)"
             class="icon-button"
+            :disabled="key.is_default"
+            :title="key.is_default ? 'Cannot delete the default provider' : 'Delete provider'"
           >
             <span class="icon-emoji" aria-hidden="true">🗑️</span>
             <span class="sr-only">Delete</span>
@@ -272,13 +274,26 @@ export default {
       return this.providers[this.form.provider].models;
     },
 
+    defaultProviderId() {
+      const def = this.keys.find((k) => k.is_default);
+      return def ? def.provider : null;
+    },
+
     performanceCard() {
+      const activeProvider = this.defaultProviderId;
       return [
-        { name: "OpenAI", color: "#10B981", border: "1px solid rgba(71,85,105,0.3)", active: false },
-        { name: "Anthropic", color: "#F97316", border: "1px solid rgba(34,211,238,0.5)", active: true },
-        { name: "xAI Grok", color: "#3B82F6", border: "1px solid rgba(71,85,105,0.3)", active: false },
-        { name: "Google Gemini", color: "#EF4444", border: "1px solid rgba(71,85,105,0.3)", active: false },
-      ];
+        { id: "openai", name: "OpenAI", color: "#10B981", border: "1px solid rgba(71,85,105,0.3)" },
+        { id: "anthropic", name: "Anthropic", color: "#F97316", border: "1px solid rgba(71,85,105,0.3)" },
+        { id: "xai", name: "xAI Grok", color: "#3B82F6", border: "1px solid rgba(71,85,105,0.3)" },
+        { id: "google", name: "Google Gemini", color: "#EF4444", border: "1px solid rgba(71,85,105,0.3)" },
+      ].map((item) => ({
+        ...item,
+        active: activeProvider === item.id,
+        border:
+          activeProvider === item.id
+            ? "1px solid rgba(34,211,238,0.5)"
+            : item.border,
+      }));
     },
   },
 
@@ -370,13 +385,18 @@ export default {
       }
     },
 
-    async deleteKey(id) {
+    async deleteKey(key) {
+      if (key?.is_default) {
+        this.pushToast("Set another default before deleting this provider.", "error");
+        return;
+      }
+
       try {
         const confirmed = window.confirm("Delete this provider? This cannot be undone.");
         if (!confirmed) return;
         const del = new Form({});
-        await del.delete(`/api/provider-keys/${id}`);
-        this.keys = this.keys.filter((k) => k.id !== id);
+        await del.delete(`/api/provider-keys/${key.id}`);
+        this.keys = this.keys.filter((k) => k.id !== key.id);
         this.pushToast("Provider deleted", "success");
       } catch (error) {
         this.pushToast(this.errorMessage(error), "error");
@@ -704,6 +724,13 @@ export default {
 .icon-button:hover {
   border-color: rgba(34, 211, 238, 0.3);
   background: rgba(148, 163, 184, 0.14);
+}
+
+.icon-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.06);
 }
 
 .icon-button i {

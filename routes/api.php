@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 use App\Http\Controllers\Api\AiProviderKeyController;
+use App\Http\Controllers\Api\TeamController;
+use App\Http\Controllers\Api\UsageController;
 use App\Http\Controllers\AskKingController;
 use App\Http\Controllers\KingController;
 
@@ -24,6 +26,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/provider-keys/{id}/default', [AiProviderKeyController::class, 'setDefault']);
     Route::delete('/provider-keys/{id}', [AiProviderKeyController::class, 'destroy']);
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/team', [TeamController::class, 'index']);
+    Route::post('/team/invitations', [TeamController::class, 'invite']);
+    Route::delete('/team/members/{member}', [TeamController::class, 'destroy']);
+    Route::get('/usage', [UsageController::class, 'index']);
+});
+
+Route::get('/team/invitations/{token}', [TeamController::class, 'showInvitation']);
+Route::post('/team/invitations/accept', [TeamController::class, 'accept']);
 
 
 Route::middleware('auth:sanctum')->post('/ask-king', [AskKingController::class, 'ask']);

@@ -17,6 +17,9 @@ class AiProviderKey extends Model
         'total_queries',
     ];
 
+    protected $attributes = [
+        'total_queries' => 0,
+    ];
 
     public function getApiKeyAttribute($value)
     {
@@ -30,6 +33,7 @@ class AiProviderKey extends Model
 
     protected $casts = [
         'is_default' => 'boolean',
+        'total_queries' => 'integer',
     ];
 
     public function setApiKeyAttribute($value)

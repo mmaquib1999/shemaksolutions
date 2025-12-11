@@ -83,9 +83,10 @@ class AIRequestService
         }
 
         $url = $p['api_url'];
+        $modelToUse = $model ?: $p['model'];
 
         // BUILD PAYLOAD BASED ON PROVIDER TYPE
-        $payload = $this->buildPayload($provider, $model, $message, $framework, $p);
+        $payload = $this->buildPayload($provider, $modelToUse, $message, $framework, $p);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -100,7 +101,14 @@ class AIRequestService
 
         $data = json_decode($raw, true);
 
-        return $this->extractText($provider, $data, $raw);
+        $parsed = $this->extractText($provider, $data, $raw);
+
+        return [
+            'text' => $parsed['text'],
+            'model' => $parsed['model'] ?? $modelToUse,
+            'provider' => $provider,
+            'usage' => $parsed['usage'] ?? ($data['usage'] ?? null),
+        ];
     }
 
     /**
@@ -174,15 +182,19 @@ class AIRequestService
     private function extractText($provider, $data, $raw)
     {
         if ($provider === 'claude' && isset($data['content'][0]['text'])) {
-            return ['text' => $data['content'][0]['text']];
+            return ['text' => $data['content'][0]['text'], 'model' => $data['model'] ?? null];
         }
 
         if ($provider === 'gemini' && isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-            return ['text' => $data['candidates'][0]['content']['parts'][0]['text']];
+            return ['text' => $data['candidates'][0]['content']['parts'][0]['text'], 'model' => $data['model'] ?? null];
         }
 
         if (isset($data['choices'][0]['message']['content'])) {
-            return ['text' => $data['choices'][0]['message']['content']];
+            return [
+                'text' => $data['choices'][0]['message']['content'],
+                'model' => $data['model'] ?? null,
+                'usage' => $data['usage'] ?? null,
+            ];
         }
 
         throw new Exception("Invalid provider response: " . $raw);

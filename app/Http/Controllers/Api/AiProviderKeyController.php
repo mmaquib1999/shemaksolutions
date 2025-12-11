@@ -40,6 +40,7 @@ class AiProviderKeyController extends Controller
             'name' => $request->name,
             'api_key' => $request->api_key,
             'is_default' => $request->boolean('is_default'),
+            'total_queries' => 0,
         ]);
     }
 
@@ -101,6 +102,10 @@ class AiProviderKeyController extends Controller
         $key = AiProviderKey::where('id', $id)
             ->where('user_id', Auth::id())
             ->firstOrFail();
+
+        if ($key->is_default) {
+            return response()->json(['message' => 'Set another default before deleting this key.'], 422);
+        }
 
         $key->delete();
 
