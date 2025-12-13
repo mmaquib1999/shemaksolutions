@@ -9,8 +9,6 @@ WORKDIR /app
 
 COPY . .
 
-# If APP_ENV=local → install dev packages
-# If APP_ENV=production → no-dev + optimize
 RUN if [ "$APP_ENV" = "local" ] ; then \
         composer install --prefer-dist --no-interaction; \
     else \
@@ -43,11 +41,20 @@ RUN apt-get update && apt-get install -y \
   && docker-php-ext-enable opcache \
   && rm -rf /var/lib/apt/lists/*
 
+# Copy app source
 COPY . .
 
+# Copy dependencies & assets
 COPY --from=vendor /app/vendor ./vendor
 COPY --from=assets /app/public/build ./public/build
 
+# Copy env file
+RUN if [ -f .env.docker ]; then cp .env.docker .env; fi
+
+# Generate Laravel app key
+RUN php artisan key:generate --force
+
+# Permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
 USER www-data
