@@ -1,5 +1,11 @@
 <template>
   <div class="page">
+    <div v-if="toasts.length" class="toast-stack">
+      <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
+        {{ toast.message }}
+      </div>
+    </div>
+
     <div class="top">
       <div>
         <p class="muted">Manage your team members</p>
@@ -115,6 +121,7 @@ const loading = ref(false)
 const showInvite = ref(false)
 const inviteError = ref('')
 const inviteSuccess = ref('')
+const toasts = ref([])
 const inviteForm = reactive(
   new Form({
     name: '',
@@ -209,11 +216,13 @@ async function sendInvite() {
   try {
     await inviteForm.post('/api/team/invitations')
     inviteSuccess.value = `Invite sent to ${inviteForm.email}`
+    pushToast(inviteSuccess.value, 'success')
     resetInviteForm()
     showInvite.value = false
     loadMembers()
   } catch (error) {
     inviteError.value = errorMessage(error)
+    pushToast(inviteError.value, 'error')
   }
 }
 
@@ -253,6 +262,14 @@ function errorMessage(error) {
   if (error?.response?.data?.message) return error.response.data.message
   if (error?.message) return error.message
   return 'Something went wrong'
+}
+
+function pushToast(message, type = 'success') {
+  const id = Date.now() + Math.random()
+  toasts.value.push({ id, message, type })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
+  }, 3500)
 }
 </script>
 
@@ -527,6 +544,33 @@ function errorMessage(error) {
 .empty-state {
   padding: 18px;
   text-align: center;
+}
+
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.toast {
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #e2e8f0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  min-width: 220px;
+  font-size: 14px;
+}
+
+.toast.success {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.9), rgba(16, 185, 129, 0.9));
+}
+
+.toast.error {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.9), rgba(248, 113, 113, 0.9));
 }
 
 @media (max-width: 700px) {

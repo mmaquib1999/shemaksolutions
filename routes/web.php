@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\InvitationAcceptanceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('home');
+});
+
+Route::middleware('guest')->group(function () {
+    Route::get('/invitations/accept/{token}', [InvitationAcceptanceController::class, 'create'])
+        ->name('invitations.accept');
+    Route::post('/invitations/accept', [InvitationAcceptanceController::class, 'store'])
+        ->name('invitations.accept.store');
 });
 
 // --------------------------

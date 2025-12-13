@@ -12,13 +12,15 @@ class TeamInvitationMail extends Mailable
     use Queueable, SerializesModels;
 
     public TeamMember $invitation;
+    public string $acceptUrl;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(TeamMember $invitation)
+    public function __construct(TeamMember $invitation, string $acceptUrl)
     {
         $this->invitation = $invitation;
+        $this->acceptUrl = $acceptUrl;
     }
 
     /**
@@ -29,14 +31,7 @@ class TeamInvitationMail extends Mailable
         return $this->subject('You are invited to join the team')
             ->markdown('emails.team_invitation', [
                 'invitation' => $this->invitation,
-                'acceptUrl' => $this->buildAcceptUrl(),
+                'acceptUrl' => $this->acceptUrl,
             ]);
-    }
-
-    protected function buildAcceptUrl(): string
-    {
-        $base = config('app.url');
-
-        return rtrim($base, '/') . '/register?invite_token=' . $this->invitation->invitation_token;
     }
 }
