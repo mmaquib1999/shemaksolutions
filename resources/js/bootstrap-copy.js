@@ -15,17 +15,16 @@ window.Form = Form;
 // Laravel default header
 axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
 
-// Sanctum SPA session mode
+// ⭐ Sanctum SPA session mode
 axios.defaults.withCredentials = true;
 
-// ✅ Dynamic base URL (Vite env → fallback to current origin)
-axios.defaults.baseURL =
-  import.meta.env.VITE_API_URL || window.location.origin;
+// ⭐ Your backend domain
+axios.defaults.baseURL = "http://shemaksolutions.test";
 
-// Required before login (Sanctum)
+// ⭐ Required before login
 window.getCsrfCookie = () => axios.get("/sanctum/csrf-cookie");
 
-// Export vform Tailwind components
+// Export vform Tailwind components for Vue 3 registration
 export {
   Button,
   HasError,

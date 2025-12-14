@@ -139,6 +139,17 @@
       </div>
     </div>
 
+    <!-- Quick Triggers block -->
+    <!-- <QuickTriggers
+      @select="handleQuery"
+      @add-category="onAddCategory"
+      @add-trigger="onAddTrigger"
+      @delete-trigger="onDeleteTrigger"
+      @delete-category="onDeleteCategory"
+      @export="onExportTriggers"
+      @reset="onResetTriggers"
+    /> -->
+
     <!-- Query History panel -->
     <div style="margin-top:20px;">
       <div class="card" style="padding:12px;">
@@ -199,7 +210,7 @@ import { ref, reactive, computed } from 'vue'
 import axios from 'axios'
 import Sidebar from '../components/Sidebar.vue'
 import Header from '../components/Header.vue'
-// import QuickTriggers from './components/QuickTriggers.vue'
+import QuickTriggers from '../components/QuickTriggers.vue'
 
 /**
  * AskKing.vue
@@ -749,6 +760,35 @@ function getROICard() {
     </div>
   </div>`
   return card
+}
+
+/* ---------------------------
+   QuickTriggers event handlers
+   --------------------------- */
+function onAddCategory({ name }) {
+  showToast(`Category added: ${name}`)
+}
+
+function onDeleteCategory({ category }) {
+  showToast(`Category removed: ${category}`)
+}
+
+function onAddTrigger({ category, emoji, action }) {
+  showToast(`Trigger added to ${category}: ${emoji} ${action}`)
+}
+
+function onDeleteTrigger({ category, action }) {
+  showToast(`Trigger removed from ${category}: ${action}`)
+}
+
+function onExportTriggers(payload) {
+  const total = payload?.total ?? 0
+  const custom = payload?.custom ?? 0
+  showToast(`Exported ${total} triggers (${custom} custom)`)
+}
+
+function onResetTriggers() {
+  showToast('Triggers reset to defaults')
 }
 </script>
 

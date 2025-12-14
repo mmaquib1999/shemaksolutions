@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="settings-page" id="main-content">
     <div class="settings-inner">
       <div class="card dark-card" style="margin-bottom:20px;">
@@ -43,51 +43,78 @@
       </div>
 
       <div class="card subscription-card" style="margin-bottom:20px;">
-        <h3 style="font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">💳 Subscription Management</h3>
+        <h3 style="font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px;">Subscription Management</h3>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;">
           <div>
-            <div style="font-size:24px;font-weight:bold;color:#22d3ee;">Professional Plan</div>
-            <div style="color:#64748b;font-size:14px;">$99/month • Renews Jan 15, 2025</div>
+            <div style="font-size:24px;font-weight:bold;color:#22d3ee;">{{ subscription.name }}</div>
+            <div style="color:#64748b;font-size:14px;">
+              {{ subscription.priceFormatted }} / {{ subscription.interval }}
+              <span v-if="subscription.renewsAt">- Renews {{ formatDate(subscription.renewsAt) }}</span>
+              <span v-else-if="subscription.cancelAt">- Ends {{ formatDate(subscription.cancelAt) }}</span>
+              <span v-else>- Not scheduled</span>
+            </div>
           </div>
-          <span class="badge" style="background:rgba(16,185,129,0.2);color:#10b981;">Active</span>
+          <span
+            class="badge"
+            :style="subscription.onGracePeriod ? 'background:rgba(251,191,36,0.2);color:#fbbf24;' : 'background:rgba(16,185,129,0.2);color:#10b981;'"
+          >
+            {{ subscriptionBadge }}
+          </span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">
           <div style="padding:16px;background:rgba(15,23,42,0.5);border-radius:12px;">
             <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Queries This Month</div>
-            <div style="font-size:20px;font-weight:bold;">{{ stats.queries }} / 10,000</div>
+            <div style="font-size:20px;font-weight:bold;">{{ formatNumber(stats.queriesUsed) }} / {{ formatNumber(stats.queriesLimit) }}</div>
           </div>
           <div style="padding:16px;background:rgba(15,23,42,0.5);border-radius:12px;">
             <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Next Billing Date</div>
-            <div style="font-size:20px;font-weight:bold;">Jan 15, 2025</div>
+            <div style="font-size:20px;font-weight:bold;">{{ stats.nextBillingDate ? formatDate(stats.nextBillingDate) : '-' }}</div>
           </div>
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <button @click="openStripePortal('billing')" class="btn">Manage Billing</button>
-          <button @click="openStripePortal('payment')" class="btn-secondary">Update Payment Method</button>
+          <button @click="openStripePortal('billing')" class="btn" :disabled="portalLoading || loadingSubscription">Manage Billing</button>
+          <button @click="openStripePortal('payment')" class="btn-secondary" :disabled="portalLoading || loadingSubscription">Update Payment Method</button>
           <button @click="openStripePortal('invoices')" class="btn-secondary">View Invoices</button>
         </div>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(71,85,105,0.3);">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <span style="font-size:16px;">📊</span>
+            <span style="font-size:16px;">Plans</span>
             <span style="font-weight:600;">Plan Comparison</span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-            <div style="padding:12px;background:rgba(15,23,42,0.5);border-radius:10px;border:1px solid rgba(71,85,105,0.3);text-align:center;">
-              <div style="font-weight:600;font-size:14px;color:#cbd5e1;margin-bottom:4px;">Starter</div>
-              <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">$0<span style="font-size:12px;color:#64748b;">/mo</span></div>
-              <div style="font-size:11px;color:#64748b;">100/mo</div>
-            </div>
-            <div style="padding:12px;background:rgba(34,211,238,0.1);border-radius:10px;border:1px solid rgba(34,211,238,0.5);text-align:center;">
-              <div style="font-weight:600;font-size:14px;color:#22d3ee;margin-bottom:4px;">Professional</div>
-              <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">$99<span style="font-size:12px;color:#64748b;">/mo</span></div>
-              <div style="font-size:11px;color:#64748b;">10,000/mo</div>
-              <div style="font-size:10px;color:#22d3ee;margin-top:4px;">Current Plan</div>
-            </div>
-            <div style="padding:12px;background:rgba(15,23,42,0.5);border-radius:10px;border:1px solid rgba(71,85,105,0.3);text-align:center;">
-              <div style="font-weight:600;font-size:14px;color:#cbd5e1;margin-bottom:4px;">Enterprise</div>
-              <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">$299<span style="font-size:12px;color:#64748b;">/mo</span></div>
-              <div style="font-size:11px;color:#64748b;">Unlimited</div>
-              <button @click="openUpgradeModal" style="margin-top:8px;padding:4px 12px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;">Upgrade</button>
+            <div
+              v-for="plan in availablePlans"
+              :key="plan.price_id || plan.name"
+              :style="`padding:12px;border-radius:10px;text-align:center;border:1px solid ${plan.price_id === subscription.priceId ? 'rgba(34,211,238,0.5)' : 'rgba(71,85,105,0.3)'};background:${plan.price_id === subscription.priceId ? 'rgba(34,211,238,0.1)' : 'rgba(15,23,42,0.5)'}`"
+            >
+              <div
+                :style="`font-weight:600;font-size:14px;margin-bottom:4px;color:${plan.price_id === subscription.priceId ? '#22d3ee' : '#cbd5e1'}`"
+              >
+                {{ plan.name }}
+              </div>
+              <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">
+                {{ plan.amount_formatted || '$0.00' }}<span style="font-size:12px;color:#64748b;">/mo</span>
+              </div>
+              <div style="font-size:11px;color:#64748b;">{{ plan.query_limit ? formatNumber(plan.query_limit) + '/mo' : 'Unlimited' }}</div>
+              <div v-if="plan.price_id === subscription.priceId" style="font-size:10px;color:#22d3ee;margin-top:4px;">Current Plan</div>
+              <button
+                v-else
+                @click="openPaymentForPlan(plan)"
+                :disabled="!plan.price_id || plan.price_id === subscription.priceId"
+                :style="{
+                  marginTop: '8px',
+                  padding: '4px 12px',
+                  background: 'linear-gradient(135deg,#0ea5e9,#06b6d4)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  opacity: !plan.price_id || plan.price_id === subscription.priceId ? '0.6' : '1',
+                }"
+              >
+                {{ plan.price_id ? 'Choose' : 'Set price id' }}
+              </button>
             </div>
           </div>
         </div>
@@ -119,17 +146,17 @@
       <div class="modal">
         <div class="modal-head">
           <h3>{{ modalTitle }}</h3>
-          <button class="ghost-btn" @click="closeModal" aria-label="Close">×</button>
+          <button class="ghost-btn" @click="closeModal" aria-label="Close">X</button>
         </div>
 
         <div v-if="modal.type === 'billing'" class="modal-body">
           <div class="panel">
             <div class="panel-row">
               <span class="muted">Current Plan</span>
-              <span class="badge success">Active</span>
+              <span class="badge success">{{ subscriptionBadge }}</span>
             </div>
-            <div class="panel-title">Professional Plan</div>
-            <div class="muted"> $99.00 USD / month</div>
+            <div class="panel-title">{{ subscription.name }}</div>
+            <div class="muted">{{ subscription.priceFormatted }} / {{ subscription.interval }}</div>
           </div>
 
           <div>
@@ -141,83 +168,110 @@
               </div>
               <div class="panel-row">
                 <span class="muted">Billing Cycle</span>
-                <span>Monthly</span>
+                <span>{{ subscription.interval }}</span>
               </div>
               <div class="panel-row">
                 <span class="muted">Next Payment</span>
-                <span>Jan 15, 2025</span>
+                <span>{{ subscription.renewsAt ? formatDate(subscription.renewsAt) : 'Not scheduled' }}</span>
               </div>
               <div class="panel-row">
                 <span class="muted">Amount</span>
-                <span class="accent">$99.00 USD</span>
+                <span class="accent">{{ subscription.priceFormatted }}</span>
               </div>
             </div>
           </div>
 
           <div class="modal-actions">
-            <button class="btn" @click="closeModal" style="flex:1;">Done</button>
-            <button class="btn-secondary" @click="openStripePortal('payment')" style="flex:1;">Update Payment →</button>
+            <button class="btn" @click="visitPortal" :disabled="portalLoading" style="flex:1;">Open Stripe Portal</button>
+            <button class="btn-secondary" @click="closeModal" style="flex:1;">Close</button>
           </div>
+          <span v-if="portalError" class="muted fine">{{ portalError }}</span>
         </div>
 
         <div v-else-if="modal.type === 'payment'" class="modal-body">
           <div class="panel">
-            <div class="panel-row card-row">
-              <div class="card-chip">VISA</div>
-              <div>
-                <div>•••• •••• •••• 4242</div>
-                <div class="muted fine">Expires 12/2026</div>
-              </div>
-              <span class="badge success" style="margin-left:auto;">Default</span>
-            </div>
-          </div>
-
-          <div>
-            <h4 class="section-head">Add New Card</h4>
             <div class="form-grid">
               <div>
                 <label class="label">Card Number</label>
-                <input type="text" class="input dark-input" placeholder="1234 5678 9012 3456" maxlength="19">
+                <input
+                  type="text"
+                  class="input dark-input"
+                  placeholder="4242 4242 4242 4242"
+                  maxlength="19"
+                  inputmode="numeric"
+                  autocomplete="cc-number"
+                  v-model="cardForm.number"
+                  @input="handleCardNumberInput"
+                >
               </div>
               <div class="grid-2">
                 <div>
                   <label class="label">Expiry Date</label>
-                  <input type="text" class="input dark-input" placeholder="MM/YY" maxlength="5">
+                  <input
+                    type="text"
+                    class="input dark-input"
+                    placeholder="MM/YY"
+                    maxlength="5"
+                    inputmode="numeric"
+                    autocomplete="cc-exp"
+                    v-model="cardForm.expiry"
+                    @input="handleExpiryInput"
+                  >
                 </div>
                 <div>
                   <label class="label">CVC</label>
-                  <input type="text" class="input dark-input" placeholder="123" maxlength="4">
+                  <input
+                    type="text"
+                    class="input dark-input"
+                    placeholder="123"
+                    maxlength="4"
+                    inputmode="numeric"
+                    autocomplete="cc-csc"
+                    v-model="cardForm.cvc"
+                    @input="handleCvcInput"
+                  >
                 </div>
               </div>
               <div>
                 <label class="label">Name on Card</label>
-                <input type="text" class="input dark-input" placeholder="John Doe">
+                <input
+                  type="text"
+                  class="input dark-input"
+                  placeholder="Jane Doe"
+                  autocomplete="cc-name"
+                  v-model="cardForm.name"
+                >
               </div>
+              <div class="muted fine">Card entry is illustrative; secure submission occurs in the Stripe Billing portal.</div>
             </div>
           </div>
 
           <div class="modal-actions">
             <button class="btn-secondary" @click="closeModal" style="flex:1;">Cancel</button>
-            <button class="btn" @click="savePaymentMethod" style="flex:1;">Save Card</button>
+            <button class="btn" @click="savePaymentMethod" :disabled="portalLoading" style="flex:1;">Open Stripe Billing</button>
           </div>
-          <div class="muted fine secure">🔒 Secured by Stripe</div>
+          <div v-if="cardError" class="muted fine" style="color:#f87171;">{{ cardError }}</div>
+          <div class="muted fine secure">Secured by Stripe</div>
         </div>
 
         <div v-else-if="modal.type === 'invoices'" class="modal-body">
           <div class="panel-row" style="margin-bottom:12px;">
-            <span class="muted fine">Showing last {{ invoices.length }} invoices</span>
-            <button class="btn-secondary" @click="exportAllInvoices" style="padding:8px 12px;font-size:12px;">⬇ Export All</button>
+            <span class="muted fine">Showing {{ invoices.length }} invoices</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-secondary" @click="openStripePortal('payment')" style="padding:8px 12px;font-size:12px;">Update Card</button>
+              <button class="btn-secondary" @click="exportAllInvoices" style="padding:8px 12px;font-size:12px;">Export All</button>
+            </div>
           </div>
           <div class="invoice-list">
-            <div v-for="inv in invoices" :key="inv.id" class="invoice-row">
+            <div v-for="inv in invoices" :key="inv.id" class="invoice-row" @click="downloadInvoice(inv.id)" style="cursor:pointer;">
               <div>
                 <div>{{ inv.id }}</div>
-                <div class="muted fine">{{ inv.date }}</div>
+                <div class="muted fine">{{ formatDate(inv.date) }}</div>
               </div>
               <div class="invoice-right">
                 <span class="accent">{{ inv.amount }}</span>
                 <span class="badge success">{{ inv.status }}</span>
-                <button class="ghost-btn" @click="downloadInvoice(inv.id)" aria-label="Download">⬇</button>
+                <button class="ghost-btn" @click.stop="downloadInvoice(inv.id)" aria-label="Download">Download</button>
               </div>
             </div>
           </div>
@@ -231,13 +285,13 @@
 </template>
 
 <script setup>
-import { reactive, computed, ref, onMounted } from 'vue'
-import axios from 'axios'
+import { reactive, computed, ref, onMounted } from "vue"
+import axios from "axios"
 
 const form = reactive({
-  name: 'Claudino Nelson',
-  email: 'claudino@shemaksolutions.ca',
-  company: 'Shema K Solutions',
+  name: "Claudino Nelson",
+  email: "claudino@shemaksolutions.ca",
+  company: "Shema K Solutions",
 })
 
 const notifications = reactive({
@@ -246,101 +300,357 @@ const notifications = reactive({
   marketing: false,
 })
 
-const stats = reactive({
-  queries: '2,847',
+const subscription = reactive({
+  name: "Professional Plan",
+  priceFormatted: "$99.00",
+  interval: "month",
+  status: "inactive",
+  renewsAt: "",
+  cancelAt: "",
+  onGracePeriod: false,
+  isActive: false,
+  priceId: "",
 })
 
+const stats = reactive({
+  queriesUsed: 0,
+  queriesLimit: 10000,
+  nextBillingDate: "",
+})
+
+const invoices = reactive([])
+const availablePlans = ref([])
+
 const saving = ref(false)
-const status = ref('')
+const status = ref("")
+const cardError = ref("")
+const portalUrl = ref("")
+const portalError = ref("")
+const portalLoading = ref(false)
+const loadingSubscription = ref(false)
+
+const cardForm = reactive({
+  number: "",
+  expiry: "",
+  cvc: "",
+  name: "",
+})
+
+const selectedPlan = reactive({
+  priceId: "",
+  name: "",
+})
 
 const modal = reactive({
   open: false,
-  type: '',
+  type: "",
 })
-
-const invoices = reactive([
-  { id: 'INV-2024-012', date: 'Dec 15, 2024', amount: '$99.00', status: 'Paid' },
-  { id: 'INV-2024-011', date: 'Nov 15, 2024', amount: '$99.00', status: 'Paid' },
-  { id: 'INV-2024-010', date: 'Oct 15, 2024', amount: '$99.00', status: 'Paid' },
-  { id: 'INV-2024-009', date: 'Sep 15, 2024', amount: '$99.00', status: 'Paid' },
-  { id: 'INV-2024-008', date: 'Aug 15, 2024', amount: '$99.00', status: 'Paid' },
-  { id: 'INV-2024-007', date: 'Jul 15, 2024', amount: '$99.00', status: 'Paid' },
-])
 
 const modalTitle = computed(() => {
-  if (modal.type === 'billing') return '💳 Manage Billing'
-  if (modal.type === 'payment') return '💳 Update Payment Method'
-  if (modal.type === 'invoices') return '📄 Invoice History'
-  return ''
+  if (modal.type === "billing") return "Manage Billing"
+  if (modal.type === "payment") return "Update Payment Method"
+  if (modal.type === "invoices") return "Invoice History"
+  return ""
 })
 
-onMounted(loadAccount)
+const subscriptionBadge = computed(() => {
+  if (subscription.onGracePeriod) return "Cancels soon"
+  if (subscription.status === "active") return "Active"
+  if (subscription.status === "trialing") return "Trialing"
+  return "Inactive"
+})
+
+onMounted(() => {
+  loadAccount()
+  loadSubscription()
+  handleCheckoutReturn()
+})
 
 async function loadAccount() {
   try {
-    const { data } = await axios.get('/api/account')
+    const { data } = await axios.get("/api/account")
     form.name = data?.name || form.name
     form.email = data?.email || form.email
     form.company = data?.company || form.company
   } catch (error) {
-    console.error('Failed to load account', error)
+    console.error("Failed to load account", error)
   }
+}
+
+async function loadSubscription() {
+  loadingSubscription.value = true
+  portalError.value = ""
+  try {
+    const { data } = await axios.get("/api/subscription")
+    applySubscription(data?.subscription)
+    stats.queriesUsed = data?.usage?.queries_used ?? stats.queriesUsed
+    stats.queriesLimit = data?.usage?.queries_limit ?? stats.queriesLimit
+    stats.nextBillingDate = data?.subscription?.renews_at || data?.subscription?.cancel_at || ""
+    availablePlans.value = data?.plans || []
+    if (!availablePlans.value.length) {
+      availablePlans.value = [
+        { name: "Starter", amount_formatted: "$0.00", query_limit: 100, price_id: "price_dummy_starter" },
+        { name: "Professional", amount_formatted: "$99.00", query_limit: 10000, price_id: "price_dummy_pro" },
+        { name: "Enterprise", amount_formatted: "$299.00", query_limit: null, price_id: "price_dummy_enterprise" },
+      ]
+    }
+    invoices.splice(0, invoices.length, ...(data?.invoices || []))
+    form.email = data?.customer?.email || form.email
+  } catch (error) {
+    console.error("Failed to load subscription", error)
+  } finally {
+    loadingSubscription.value = false
+  }
+}
+
+function applySubscription(payload) {
+  if (!payload) return
+  subscription.name = payload.name || subscription.name
+  subscription.priceFormatted = payload.amount_formatted || subscription.priceFormatted
+  subscription.interval = payload.interval || subscription.interval
+  subscription.status = payload.status || subscription.status
+  subscription.renewsAt = payload.renews_at || ""
+  subscription.cancelAt = payload.cancel_at || ""
+  subscription.onGracePeriod = payload.on_grace_period || false
+  subscription.isActive = payload.is_active ?? subscription.isActive
+  subscription.priceId = payload.price_id || subscription.priceId
 }
 
 function saveSettings() {
   saving.value = true
-  status.value = ''
+  status.value = ""
   axios
-    .put('/api/account', {
+    .put("/api/account", {
       name: form.name,
       company: form.company,
     })
     .then(({ data }) => {
       form.name = data?.name || form.name
       form.company = data?.company || form.company
-      status.value = 'Account updated.'
+      status.value = "Account updated."
     })
     .catch((error) => {
-      console.error('Save failed', error)
-      status.value = 'Could not save changes.'
+      console.error("Save failed", error)
+      status.value = "Could not save changes."
     })
     .finally(() => {
       saving.value = false
     })
 }
 
-function openStripePortal(action) {
+async function ensurePortalUrl() {
+  if (portalUrl.value) return portalUrl.value
+  portalError.value = ""
+  portalLoading.value = true
+  try {
+    const { data } = await axios.post("/api/subscription/portal", {
+      return_url: window.location.origin + "/settings",
+    })
+    portalUrl.value = data?.url || ""
+    return portalUrl.value
+  } catch (error) {
+    const apiMessage = error?.response?.data?.message
+    portalError.value = apiMessage || "Could not open Stripe billing portal."
+    console.error("Portal error", error)
+    throw error
+  } finally {
+    portalLoading.value = false
+  }
+}
+
+async function openStripePortal(action) {
   modal.type = action
+  modal.open = true
+  cardError.value = ""
+  selectedPlan.priceId = ""
+  selectedPlan.name = ""
+  if (action === "billing" || action === "payment") {
+    try {
+      await ensurePortalUrl()
+    } catch (e) {
+      // handled in ensurePortalUrl
+    }
+  }
+  if (action === "invoices") {
+    await loadInvoices()
+  }
+}
+
+function openPaymentForPlan(plan) {
+  selectedPlan.priceId = plan.price_id
+  selectedPlan.name = plan.name
+  cardError.value = ""
+  modal.type = "payment"
   modal.open = true
 }
 
-function openUpgradeModal() {
-  console.log('Open upgrade modal')
+async function visitPortal() {
+  const url = await ensurePortalUrl()
+  if (url) {
+    window.open(url, "_blank", "noopener")
+  }
 }
 
-function cancelSubscription() {
-  console.log('Cancel subscription')
+async function loadInvoices() {
+  try {
+    const { data } = await axios.get("/api/subscription/invoices")
+    invoices.splice(0, invoices.length, ...(data?.invoices || []))
+  } catch (error) {
+    console.error("Failed to load invoices", error)
+  }
+}
+
+async function startCheckout(priceId) {
+  const targetPrice = priceId || subscription.priceId
+  if (!targetPrice) {
+    status.value = "No Stripe price is configured yet."
+    return
+  }
+
+  try {
+    const { data } = await axios.post("/api/subscription/checkout", {
+      price_id: targetPrice,
+      success_url: window.location.origin + "/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: window.location.origin + "/settings?checkout=cancelled",
+    })
+
+    if (data?.url) {
+      window.location.href = data.url
+    }
+  } catch (error) {
+    console.error("Checkout error", error)
+    status.value = "Unable to start checkout."
+  }
+}
+
+async function cancelSubscription() {
+  if (!confirm("Cancel your subscription at the end of the current billing period?")) return
+  try {
+    const { data } = await axios.post("/api/subscription/cancel")
+    applySubscription(data?.subscription)
+    status.value = data?.message || "Subscription updated."
+  } catch (error) {
+    console.error("Cancel failed", error)
+    status.value = "Could not cancel subscription."
+  }
 }
 
 function confirmDeleteAccount() {
-  console.log('Delete account')
+  console.log("Delete account")
 }
 
 function closeModal() {
   modal.open = false
 }
 
-function savePaymentMethod() {
-  console.log('Save card')
+async function savePaymentMethod() {
+  cardError.value = ""
+  if (selectedPlan.priceId) {
+    if (!validateCardForm()) return
+    await startCheckout(selectedPlan.priceId)
+  } else {
+    await visitPortal()
+  }
   modal.open = false
 }
 
 function exportAllInvoices() {
-  console.log('Export invoices')
+  axios
+    .get("/api/subscription/invoices/export", { responseType: "blob" })
+    .then((response) => {
+      const blob = new Blob([response.data], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "invoices.csv"
+      a.click()
+      window.URL.revokeObjectURL(url)
+    })
+    .catch((error) => {
+      console.error("Failed to export invoices", error)
+      status.value = "Could not export invoices."
+    })
 }
 
 function downloadInvoice(id) {
-  console.log('Download invoice', id)
+  const invoice = invoices.find((inv) => inv.id === id)
+  const target = invoice?.invoice_pdf || invoice?.hosted_invoice_url
+  if (target) {
+    window.open(target, "_blank", "noopener")
+  }
+}
+
+function formatNumber(value) {
+  if (value === null || value === undefined) return "0"
+  return Number(value).toLocaleString()
+}
+
+function formatDate(date) {
+  if (!date) return "—"
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return date
+  return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+}
+
+function handleCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search)
+  const checkout = params.get("checkout")
+  if (checkout === "success") {
+    status.value = "Payment succeeded. Updating your plan..."
+    loadSubscription()
+    params.delete("checkout")
+    params.delete("session_id")
+    window.history.replaceState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`)
+  }
+}
+
+function validateCardForm() {
+  const numberDigits = cardForm.number.replace(/\D/g, "")
+  const expiryDigits = cardForm.expiry.replace(/\D/g, "")
+  const cvcDigits = cardForm.cvc.replace(/\D/g, "")
+
+  if (numberDigits.length < 13 || numberDigits.length > 19) {
+    cardError.value = "Enter a valid card number."
+    return false
+  }
+
+  if (expiryDigits.length !== 4) {
+    cardError.value = "Enter expiry as MM/YY."
+    return false
+  }
+
+  if (cvcDigits.length < 3 || cvcDigits.length > 4) {
+    cardError.value = "Enter a valid CVC."
+    return false
+  }
+
+  if (!cardForm.name.trim()) {
+    cardError.value = "Cardholder name is required."
+    return false
+  }
+
+  return true
+}
+
+function handleCardNumberInput(event) {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 19)
+  const parts = digits.match(/.{1,4}/g) || []
+  cardForm.number = parts.join(" ")
+}
+
+function handleExpiryInput(event) {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 4)
+  if (digits.length >= 3) {
+    cardForm.expiry = `${digits.slice(0, 2)}/${digits.slice(2)}`
+  } else if (digits.length >= 1) {
+    cardForm.expiry = digits
+  } else {
+    cardForm.expiry = ""
+  }
+}
+
+function handleCvcInput(event) {
+  cardForm.cvc = event.target.value.replace(/\D/g, "").slice(0, 4)
 }
 </script>
 
@@ -532,7 +842,7 @@ function downloadInvoice(id) {
 }
 
 .check:checked::after {
-  content: '✓';
+  content: "✓";
   color: #fff;
   font-size: 12px;
   line-height: 14px;
@@ -576,6 +886,8 @@ function downloadInvoice(id) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
 }
 
 .invoice-row {

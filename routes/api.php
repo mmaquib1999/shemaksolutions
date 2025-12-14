@@ -19,6 +19,8 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\UsageController;
 use App\Http\Controllers\AskKingController;
 use App\Http\Controllers\KingController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\QuickTriggerController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/provider-keys', [AiProviderKeyController::class, 'index']);
@@ -36,6 +38,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/team/invitations', [TeamController::class, 'invite']);
     Route::delete('/team/members/{member}', [TeamController::class, 'destroy']);
     Route::get('/usage', [UsageController::class, 'index']);
+
+    // Quick Triggers
+    Route::get('/quick-triggers', [QuickTriggerController::class, 'index']);
+    Route::post('/quick-triggers/categories', [QuickTriggerController::class, 'storeCategory']);
+    Route::delete('/quick-triggers/categories/{category}', [QuickTriggerController::class, 'destroyCategory']);
+    Route::post('/quick-triggers/categories/{category}/triggers', [QuickTriggerController::class, 'storeTrigger']);
+    Route::delete('/quick-triggers/categories/{category}/triggers/{trigger}', [QuickTriggerController::class, 'destroyTrigger']);
+    Route::post('/quick-triggers/reset', [QuickTriggerController::class, 'reset']);
+
+    Route::get('/subscription', [SubscriptionController::class, 'show']);
+    Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
+    Route::post('/subscription/portal', [SubscriptionController::class, 'portal']);
+    Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
+    Route::post('/subscription/resume', [SubscriptionController::class, 'resume']);
+    Route::get('/subscription/invoices', [SubscriptionController::class, 'invoices']);
+    Route::get('/subscription/invoices/export', [SubscriptionController::class, 'exportInvoices']);
 });
 
 Route::get('/team/invitations/{token}', [TeamController::class, 'showInvitation']);

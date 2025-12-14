@@ -31,4 +31,15 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'price_id' => env('STRIPE_PRICE_ID'),
+        'pro_price_id' => env('STRIPE_PRICE_ID_PRO', env('STRIPE_PRICE_ID')),
+        'starter_price_id' => env('STRIPE_PRICE_ID_STARTER'),
+        'enterprise_price_id' => env('STRIPE_PRICE_ID_ENTERPRISE'),
+        'billing_return_url' => env('STRIPE_BILLING_RETURN_URL'),
+    ],
+
 ];

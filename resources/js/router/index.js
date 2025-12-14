@@ -10,12 +10,13 @@ import Team from '../views/Team.vue'
 import Usage from '../views/Analytics.vue'
 import Audit from '../views/Billing.vue'
 import Settings from '../views/Settings.vue'
+import QuickTriggers from '../components/QuickTriggers.vue'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },
 
   { path: '/dashboard', name: 'dashboard', component: AskKing },
-  { path: '/triggers', name: 'triggers', component: Triggers },
+  { path: '/triggers', name: 'triggers', component: QuickTriggers },
   { path: '/resources', name: 'resources', component: Resources },
   { path: '/provider', name: 'provider', component: AIProviders },
   { path: '/leaderboard', name: 'leaderboard', component: Leaderboard },
