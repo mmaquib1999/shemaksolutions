@@ -25,6 +25,27 @@ axios.defaults.baseURL =
 // Required before login (Sanctum)
 window.getCsrfCookie = () => axios.get("/sanctum/csrf-cookie");
 
+// Global response handler: redirect to verify or login as needed
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    const message = error?.response?.data?.message;
+
+    if (status === 403 && message === "verification_required") {
+      if (window.location.pathname !== "/verify-code") {
+        window.location.href = "/verify-code";
+      }
+    } else if (status === 401) {
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // Export vform Tailwind components
 export {
   Button,

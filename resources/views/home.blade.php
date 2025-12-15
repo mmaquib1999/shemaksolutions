@@ -979,6 +979,23 @@ function closeAuth() {
 function switchAuthTab(mode) {
     APP.authMode = mode;
 
+    const activeBg = 'linear-gradient(135deg,#0ea5e9,#06b6d4)';
+    const inactiveBg = 'transparent';
+    const activeColor = '#fff';
+    const inactiveColor = '#94a3b8';
+
+    const $loginTab = $('#login-tab');
+    const $registerTab = $('#register-tab');
+
+    // Toggle tab visuals
+    if (mode === 'login') {
+        $loginTab.css({ background: activeBg, color: activeColor });
+        $registerTab.css({ background: inactiveBg, color: inactiveColor });
+    } else {
+        $registerTab.css({ background: activeBg, color: activeColor });
+        $loginTab.css({ background: inactiveBg, color: inactiveColor });
+    }
+
     $('#auth-submit').text(
         mode === 'login' ? 'Sign In' : 'Create Account'
     );
@@ -1023,13 +1040,19 @@ function handleAuth() {
         url: url,
         type: 'POST',
         data: data,
-        // ✅ REMOVE dataType
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
         success: function () {
-            // Laravel will redirect automatically
-            window.location.href = '/dashboard';
+            // after register/login, send user to verification gate
+            window.location.href = '/verify-code';
+        },
+        statusCode: {
+            302: function () {
+                window.location.href = '/verify-code';
+            }
         },
         error: function (xhr) {
-
             btn.text(originalText).prop('disabled', false);
 
             // ✅ Validation errors
@@ -1047,6 +1070,12 @@ function handleAuth() {
             // ✅ CSRF
             if (xhr.status === 419) {
                 showGlobalError('Session expired. Refresh the page.');
+                return;
+            }
+
+            // 403 verification required from API
+            if (xhr.status === 403 && xhr.responseJSON?.message === 'verification_required') {
+                window.location.href = '/verify-code';
                 return;
             }
 

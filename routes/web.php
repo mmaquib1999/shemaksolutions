@@ -30,12 +30,17 @@ Route::middleware('guest')->group(function () {
 // PROTECTED SPA ROUTES (Vue)
 // --------------------------
 Route::middleware(['auth'])->group(function () {
+    // verification page (no verified.code to avoid loop)
+    Route::get('/verify-code', function () {
+        return view('layouts.app'); // Vue SPA root blade
+    });
 
     // All Vue routes handled here
-    Route::get('/{any}', function () {
-        return view('layouts.app'); // Vue SPA root blade
-    })->where('any', '^(?!api|logout|login|register).*$');
-
+    Route::middleware(['verified.code'])->group(function () {
+        Route::get('/{any}', function () {
+            return view('layouts.app'); // Vue SPA root blade
+        })->where('any', '^(?!api|logout|login|register|verify-code).*$');
+    });
 });
 
 

@@ -11,6 +11,8 @@ import Usage from '../views/Analytics.vue'
 import Audit from '../views/Billing.vue'
 import Settings from '../views/Settings.vue'
 import QuickTriggers from '../components/QuickTriggers.vue'
+import VerifyCode from '../views/VerifyCode.vue'
+import axios from 'axios'
 
 const routes = [
   { path: '/', redirect: '/dashboard' },
@@ -24,12 +26,39 @@ const routes = [
   { path: '/usage', name: 'usage', component: Usage },
   { path: '/audit', name: 'audit', component: Audit },
   { path: '/settings', name: 'settings', component: Settings },
+  { path: '/verify-code', name: 'verify-code', component: VerifyCode },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Simple route guard to enforce verification on the SPA layer (helps during Vite dev server)
+router.beforeEach(async (to, from, next) => {
+  // allow verify-code path always
+  if (to.path === '/verify-code') return next()
+
+  try {
+    const { data } = await axios.get('/api/user')
+    if (data?.verification_verified_at) {
+      return next()
+    }
+    // not verified -> go verify
+    return next({ path: '/verify-code' })
+  } catch (error) {
+    // if not authenticated, send to login
+    if (error?.response?.status === 401) {
+      return next({ path: '/login' })
+    }
+    // if verification required, send to verify
+    if (error?.response?.status === 403 && error?.response?.data?.message === 'verification_required') {
+      return next({ path: '/verify-code' })
+    }
+    // default: continue
+    return next()
+  }
 })
 
 export default router

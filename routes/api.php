@@ -21,6 +21,7 @@ use App\Http\Controllers\AskKingController;
 use App\Http\Controllers\KingController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\QuickTriggerController;
+use App\Http\Controllers\VerificationCodeController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/provider-keys', [AiProviderKeyController::class, 'index']);
@@ -46,6 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/quick-triggers/categories/{category}/triggers', [QuickTriggerController::class, 'storeTrigger']);
     Route::delete('/quick-triggers/categories/{category}/triggers/{trigger}', [QuickTriggerController::class, 'destroyTrigger']);
     Route::post('/quick-triggers/reset', [QuickTriggerController::class, 'reset']);
+
+    // Verification code endpoints
+    Route::post('/verify-code', [VerificationCodeController::class, 'verify']);
+    Route::post('/verify-code/resend', [VerificationCodeController::class, 'resend']);
 
     Route::get('/subscription', [SubscriptionController::class, 'show']);
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);

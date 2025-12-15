@@ -152,6 +152,7 @@ class QuickTriggerController extends Controller
                 'is_default' => true,
             ]);
             $triggers = collect($catData['triggers'])->map(fn ($t) => [
+                'quick_trigger_category_id' => $category->id,
                 'emoji' => $t['emoji'],
                 'action' => $t['action'],
                 'is_default' => true,
