@@ -34,6 +34,8 @@ class VerificationCodeController extends Controller
             'verification_code' => null,
             'verification_expires_at' => null,
             'verification_verified_at' => now(),
+            // Optional: also mark primary email verified for consistency
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
 
         return response()->json(['ok' => true]);

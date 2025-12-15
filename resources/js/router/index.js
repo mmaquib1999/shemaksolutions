@@ -37,12 +37,25 @@ const router = createRouter({
 
 // Simple route guard to enforce verification on the SPA layer (helps during Vite dev server)
 router.beforeEach(async (to, from, next) => {
-  // allow verify-code path always
-  if (to.path === '/verify-code') return next()
+  // already verified? go to dashboard; allow verify-code only if not verified
+  if (to.path === '/verify-code') {
+    try {
+      const { data } = await axios.get('/api/user')
+      if (data?.email_verified_at) {
+        return next({ path: '/dashboard' })
+      }
+      return next()
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        return next({ path: '/login' })
+      }
+      return next()
+    }
+  }
 
   try {
     const { data } = await axios.get('/api/user')
-    if (data?.verification_verified_at) {
+    if (data?.email_verified_at) {
       return next()
     }
     // not verified -> go verify
@@ -53,7 +66,10 @@ router.beforeEach(async (to, from, next) => {
       return next({ path: '/login' })
     }
     // if verification required, send to verify
-    if (error?.response?.status === 403 && error?.response?.data?.message === 'verification_required') {
+    if (
+      error?.response?.status === 403 &&
+      error?.response?.data?.message === 'verification_required'
+    ) {
       return next({ path: '/verify-code' })
     }
     // default: continue

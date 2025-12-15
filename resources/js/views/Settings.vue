@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="settings-page" id="main-content">
     <div class="settings-inner">
       <div class="card dark-card" style="margin-bottom:20px;">
@@ -6,15 +6,15 @@
         <div style="display:flex;flex-direction:column;gap:16px;">
           <div>
             <label class="label">Name</label>
-            <input type="text" v-model="form.name" class="input dark-input" id="settings-name">
+            <input type="text" v-model="form.name" class="input dark-input" id="settings-name" />
           </div>
           <div>
             <label class="label">Email</label>
-            <input type="email" v-model="form.email" class="input dark-input" id="settings-email" disabled>
+            <input type="email" v-model="form.email" class="input dark-input" id="settings-email" disabled />
           </div>
           <div>
             <label class="label">Company</label>
-            <input type="text" v-model="form.company" class="input dark-input" id="settings-company">
+            <input type="text" v-model="form.company" class="input dark-input" id="settings-company" />
           </div>
           <button @click="saveSettings" class="btn" :disabled="saving" style="align-self:flex-start;">
             <span v-if="saving">Saving...</span>
@@ -28,15 +28,15 @@
         <h3 style="font-weight:600;margin-bottom:20px;">Notification Preferences</h3>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
-            <input type="checkbox" v-model="notifications.safetyAlerts" class="check">
+            <input type="checkbox" v-model="notifications.safetyAlerts" class="check" />
             <span style="color:#cbd5e1;">Email notifications for new safety alerts</span>
           </label>
           <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
-            <input type="checkbox" v-model="notifications.weeklySummary" class="check">
+            <input type="checkbox" v-model="notifications.weeklySummary" class="check" />
             <span style="color:#cbd5e1;">Weekly usage summary</span>
           </label>
           <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
-            <input type="checkbox" v-model="notifications.marketing" class="check">
+            <input type="checkbox" v-model="notifications.marketing" class="check" />
             <span style="color:#cbd5e1;">Marketing updates</span>
           </label>
         </div>
@@ -73,7 +73,6 @@
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
           <button @click="openStripePortal('billing')" class="btn" :disabled="portalLoading || loadingSubscription">Manage Billing</button>
-          <button @click="openStripePortal('payment')" class="btn-secondary" :disabled="portalLoading || loadingSubscription">Update Payment Method</button>
           <button @click="openStripePortal('invoices')" class="btn-secondary">View Invoices</button>
         </div>
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(71,85,105,0.3);">
@@ -141,7 +140,7 @@
       </div>
     </div>
 
-    <!-- Billing modal -->
+    <!-- Billing / Invoices modal -->
     <div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
       <div class="modal">
         <div class="modal-head">
@@ -157,6 +156,15 @@
             </div>
             <div class="panel-title">{{ subscription.name }}</div>
             <div class="muted">{{ subscription.priceFormatted }} / {{ subscription.interval }}</div>
+          </div>
+
+          <div v-if="selectedPlan.priceId" class="panel" style="border-color:rgba(34,211,238,0.35);">
+            <div class="panel-row">
+              <span class="muted">Selected Plan</span>
+              <span class="badge success" style="background:rgba(34,211,238,0.15);color:#22d3ee;">Pending Checkout</span>
+            </div>
+            <div class="panel-title">{{ selectedPlan.name }}</div>
+            <div class="muted">{{ selectedPlan.amountFormatted || 'Monthly' }}</div>
           </div>
 
           <div>
@@ -182,83 +190,33 @@
           </div>
 
           <div class="modal-actions">
-            <button class="btn" @click="visitPortal" :disabled="portalLoading" style="flex:1;">Open Stripe Portal</button>
+            <button
+              v-if="selectedPlan.priceId"
+              class="btn"
+              @click="startCheckout(selectedPlan.priceId)"
+              :disabled="portalLoading"
+              style="flex:1;"
+            >
+              Subscribe Monthly
+            </button>
+            <button
+              v-else
+              class="btn"
+              @click="visitPortal"
+              :disabled="portalLoading"
+              style="flex:1;"
+            >
+              Open Stripe Portal
+            </button>
             <button class="btn-secondary" @click="closeModal" style="flex:1;">Close</button>
           </div>
           <span v-if="portalError" class="muted fine">{{ portalError }}</span>
-        </div>
-
-        <div v-else-if="modal.type === 'payment'" class="modal-body">
-          <div class="panel">
-            <div class="form-grid">
-              <div>
-                <label class="label">Card Number</label>
-                <input
-                  type="text"
-                  class="input dark-input"
-                  placeholder="4242 4242 4242 4242"
-                  maxlength="19"
-                  inputmode="numeric"
-                  autocomplete="cc-number"
-                  v-model="cardForm.number"
-                  @input="handleCardNumberInput"
-                >
-              </div>
-              <div class="grid-2">
-                <div>
-                  <label class="label">Expiry Date</label>
-                  <input
-                    type="text"
-                    class="input dark-input"
-                    placeholder="MM/YY"
-                    maxlength="5"
-                    inputmode="numeric"
-                    autocomplete="cc-exp"
-                    v-model="cardForm.expiry"
-                    @input="handleExpiryInput"
-                  >
-                </div>
-                <div>
-                  <label class="label">CVC</label>
-                  <input
-                    type="text"
-                    class="input dark-input"
-                    placeholder="123"
-                    maxlength="4"
-                    inputmode="numeric"
-                    autocomplete="cc-csc"
-                    v-model="cardForm.cvc"
-                    @input="handleCvcInput"
-                  >
-                </div>
-              </div>
-              <div>
-                <label class="label">Name on Card</label>
-                <input
-                  type="text"
-                  class="input dark-input"
-                  placeholder="Jane Doe"
-                  autocomplete="cc-name"
-                  v-model="cardForm.name"
-                >
-              </div>
-              <div class="muted fine">Card entry is illustrative; secure submission occurs in the Stripe Billing portal.</div>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button class="btn-secondary" @click="closeModal" style="flex:1;">Cancel</button>
-            <button class="btn" @click="savePaymentMethod" :disabled="portalLoading" style="flex:1;">Open Stripe Billing</button>
-          </div>
-          <div v-if="cardError" class="muted fine" style="color:#f87171;">{{ cardError }}</div>
-          <div class="muted fine secure">Secured by Stripe</div>
         </div>
 
         <div v-else-if="modal.type === 'invoices'" class="modal-body">
           <div class="panel-row" style="margin-bottom:12px;">
             <span class="muted fine">Showing {{ invoices.length }} invoices</span>
             <div style="display:flex;gap:8px;">
-              <button class="btn-secondary" @click="openStripePortal('payment')" style="padding:8px 12px;font-size:12px;">Update Card</button>
               <button class="btn-secondary" @click="exportAllInvoices" style="padding:8px 12px;font-size:12px;">Export All</button>
             </div>
           </div>
@@ -348,7 +306,6 @@ const modal = reactive({
 
 const modalTitle = computed(() => {
   if (modal.type === "billing") return "Manage Billing"
-  if (modal.type === "payment") return "Update Payment Method"
   if (modal.type === "invoices") return "Invoice History"
   return ""
 })
@@ -464,7 +421,7 @@ async function openStripePortal(action) {
   cardError.value = ""
   selectedPlan.priceId = ""
   selectedPlan.name = ""
-  if (action === "billing" || action === "payment") {
+  if (action === "billing") {
     try {
       await ensurePortalUrl()
     } catch (e) {
@@ -479,9 +436,14 @@ async function openStripePortal(action) {
 function openPaymentForPlan(plan) {
   selectedPlan.priceId = plan.price_id
   selectedPlan.name = plan.name
+  selectedPlan.amountFormatted = plan.amount_formatted || ''
   cardError.value = ""
-  modal.type = "payment"
+  modal.type = "billing"
   modal.open = true
+  if (plan.price_id) {
+    // ensure billing portal is ready in case user wants to switch inside portal
+    ensurePortalUrl().catch(() => {})
+  }
 }
 
 async function visitPortal() {
@@ -586,7 +548,7 @@ function formatNumber(value) {
 }
 
 function formatDate(date) {
-  if (!date) return "—"
+  if (!date) return "?"
   const parsed = new Date(date)
   if (Number.isNaN(parsed.getTime())) return date
   return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
@@ -778,23 +740,6 @@ function handleCvcInput(event) {
   border-top: 1px solid rgba(71, 85, 105, 0.25);
 }
 
-.card-row {
-  gap: 12px;
-}
-
-.card-chip {
-  width: 56px;
-  height: 36px;
-  background: linear-gradient(135deg, #1a1f71, #00579f);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 11px;
-}
-
 .modal-actions {
   display: flex;
   gap: 10px;
@@ -842,7 +787,7 @@ function handleCvcInput(event) {
 }
 
 .check:checked::after {
-  content: "✓";
+  content: '✔';
   color: #fff;
   font-size: 12px;
   line-height: 14px;
@@ -863,18 +808,6 @@ function handleCvcInput(event) {
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 700;
-}
-
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
 }
 
 .secure {

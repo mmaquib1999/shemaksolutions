@@ -17,6 +17,12 @@ axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
 
 // Sanctum SPA session mode
 axios.defaults.withCredentials = true;
+axios.defaults.xsrfCookieName = "XSRF-TOKEN";
+axios.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
+const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+if (metaToken) {
+  axios.defaults.headers.common['X-CSRF-TOKEN'] = metaToken;
+}
 
 // ✅ Dynamic base URL (Vite env → fallback to current origin)
 axios.defaults.baseURL =
@@ -54,3 +60,4 @@ export {
   AlertErrors,
   AlertSuccess
 };
+

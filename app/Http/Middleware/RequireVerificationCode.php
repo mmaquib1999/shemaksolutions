@@ -16,8 +16,16 @@ class RequireVerificationCode
             return $next($request);
         }
 
-        // Already verified with code
-        if ($user->verification_verified_at) {
+        // If email is verified or verification timestamp exists, allow through and clear stale codes
+        if ($user->email_verified_at || $user->verification_verified_at) {
+            if ($user->verification_code !== null || $user->verification_expires_at !== null) {
+                $user->forceFill([
+                    'verification_code' => null,
+                    'verification_expires_at' => null,
+                    'verification_verified_at' => $user->verification_verified_at ?? $user->email_verified_at ?? now(),
+                    'email_verified_at' => $user->email_verified_at ?? $user->verification_verified_at ?? now(),
+                ])->save();
+            }
             return $next($request);
         }
 
@@ -36,7 +44,7 @@ class RequireVerificationCode
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['message' => 'verification_required'], 403);
+            return response()->json(['message' => 'verification_required', 'verified' => false], 403);
         }
 
         return redirect('/verify-code');

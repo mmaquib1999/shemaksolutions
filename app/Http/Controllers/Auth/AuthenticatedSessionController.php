@@ -29,6 +29,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // If user is already verified, normalize verification fields to prevent re-prompts
+        $user = $request->user();
+        if ($user) {
+            if ($user->email_verified_at || $user->verification_verified_at) {
+                $user->forceFill([
+                    'verification_code' => null,
+                    'verification_expires_at' => null,
+                    'verification_verified_at' => $user->verification_verified_at ?? $user->email_verified_at ?? now(),
+                    'email_verified_at' => $user->email_verified_at ?? $user->verification_verified_at ?? now(),
+                ])->save();
+            }
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 
