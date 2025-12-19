@@ -60,23 +60,23 @@
             <div style="font-size:24px;font-weight:bold;">{{ mockUsage.queries_used.toLocaleString() }}</div>
             <div style="font-size:11px;color:#64748b;">of {{ mockUsage.queries_limit.toLocaleString() }}</div>
             <div style="margin-top:8px;height:4px;background:rgba(51,65,85,0.8);border-radius:2px;overflow:hidden;">
-              <div :style="{ height: '4px', background: 'linear-gradient(90deg,#0ea5e9,#06b6d4)', width: (mockUsage.queries_used / mockUsage.queries_limit) * 100 + '%' }"></div>
+              <div :style="{ height: '4px', background: 'linear-gradient(90deg,#0ea5e9,#06b6d4)', width: (mockUsage.queries_limit ? (mockUsage.queries_used / mockUsage.queries_limit) * 100 : 0) + '%' }"></div>
             </div>
           </div>
 
           <div class="card" style="padding:16px;">
             <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Active Provider</div>
             <div style="font-size:24px;font-weight:bold;">
-              {{ lastProviderDisplay || 'Claude' }}
+              {{ lastProviderDisplay || '—' }}
             </div>
             <div style="font-size:11px;color:#64748b;">
-              {{ lastProviderVendor || 'Anthropic' }}
+              {{ lastProviderVendor || '—' }}
             </div>
           </div>
 
           <div class="card" style="padding:16px;">
             <div style="font-size:12px;color:#64748b;margin-bottom:4px;">Team Members</div>
-            <div style="font-size:24px;font-weight:bold;">{{ teamMembers.length }}</div>
+            <div style="font-size:24px;font-weight:bold;">{{ teamCount }}</div>
             <div style="font-size:11px;color:#64748b;">Active</div>
           </div>
 
@@ -206,8 +206,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { Form } from 'vform'
 import Sidebar from '../components/Sidebar.vue'
 import Header from '../components/Header.vue'
 import QuickTriggers from '../components/QuickTriggers.vue'
@@ -229,32 +230,12 @@ const demoUser = reactive({
 })
 
 const mockUsage = reactive({
-  queries_used: 2847,
-  queries_limit: 10000,
-  hours_saved: 142,
-  avg_response_time: 1.2
+  queries_used: 0,
+  queries_limit: 0,
+  hours_saved: 0,
+  avg_response_time: 0
 })
-
-const teamMembers = ref([
-  {
-    id: 1,
-    name: 'Claudino Nelson',
-    email: 'claudino@shemaksolutions.ca',
-    role: 'owner',
-    queries: 1847,
-    badges: ['loto', 'ppe', 'fire'],
-    streak: 12
-  },
-  {
-    id: 2,
-    name: 'Sarah Johnson',
-    email: 'sarah@company.com',
-    role: 'admin',
-    queries: 623,
-    badges: ['electrical'],
-    streak: 8
-  }
-])
+const teamMembers = ref([])
 
 /* ---------------------------
    Industry data (hardcoded)
@@ -394,6 +375,11 @@ const lastResponse = ref('')
 const queryHistory = ref([])
 const loading = ref(false)
 const lastQueryId = ref(0)
+const form = new Form({
+  message: ''
+})
+const teamCount = ref(teamMembers.value.length)
+const apiError = ref('')
 
 // last provider info from API
 const lastProvider = ref('')
@@ -408,18 +394,21 @@ const currentIndustry = computed(
 /* derived provider display text */
 const lastProviderDisplay = computed(() => {
   if (!lastProvider.value) return ''
-  // simple mapping
-  if (lastProvider.value === 'grok') return 'Grok-4.1'
+  if (lastProvider.value === 'grok' || lastProvider.value === 'xai') return 'Grok-4.1'
   if (lastProvider.value === 'openai') return 'GPT'
-  if (lastProvider.value === 'anthropic') return 'Claude'
+  if (lastProvider.value === 'anthropic' || lastProvider.value === 'claude') return 'Claude'
+  if (lastProvider.value === 'gemini' || lastProvider.value === 'google') return 'Gemini'
+  if (lastProvider.value === 'deepseek') return 'DeepSeek'
   return lastProvider.value
 })
 
 const lastProviderVendor = computed(() => {
   if (!lastProvider.value) return ''
-  if (lastProvider.value === 'grok') return 'xAI'
+  if (lastProvider.value === 'grok' || lastProvider.value === 'xai') return 'xAI'
   if (lastProvider.value === 'openai') return 'OpenAI'
-  if (lastProvider.value === 'anthropic') return 'Anthropic'
+  if (lastProvider.value === 'anthropic' || lastProvider.value === 'claude') return 'Anthropic'
+  if (lastProvider.value === 'gemini' || lastProvider.value === 'google') return 'Google'
+  if (lastProvider.value === 'deepseek') return 'DeepSeek'
   return lastProvider.value
 })
 
@@ -465,19 +454,18 @@ function isHighRiskQuery(q) {
 
 /* API helper */
 async function callAskKingAPI(message) {
+  apiError.value = ''
   try {
-    const res = await axios.post('/api/ask-king', {
-      message
-      // we could also send provider/compression_level if needed
-    })
+    form.message = message
+    const res = await form.post('/api/ask-king')
     return res.data
   } catch (error) {
-    console.error('API error:', error)
+    const msg = error?.response?.data?.error || error?.message || 'Unknown error'
+    apiError.value = msg
+    showToast('ƒ?O ' + msg)
     return {
       success: false,
-      content:
-        'API Error: ' +
-        (error.response?.data?.message || error.message || 'Unknown error')
+      content: 'API Error: ' + msg
     }
   }
 }
@@ -523,6 +511,15 @@ async function handleQuery(query) {
   lastResponse.value = apiRes.content
   lastProvider.value = apiRes.provider || ''
   lastModel.value = apiRes.model || ''
+  if (typeof apiRes.total_queries === 'number') {
+    mockUsage.queries_used = apiRes.total_queries
+  }
+  if (typeof apiRes.team_members === 'number') {
+    teamCount.value = apiRes.team_members
+  }
+  if (typeof apiRes.avg_response === 'number') {
+    mockUsage.avg_response_time = apiRes.avg_response
+  }
 
   const highRisk = isHighRiskQuery(query) || !!apiRes.emergency_detected
 
@@ -703,7 +700,7 @@ ${'-'.repeat(50)}
 
 Total Queries: ${mockUsage.queries_used}
 Hours Saved: ${mockUsage.hours_saved}
-Active Team Members: ${teamMembers.value.length}
+Active Team Members: ${teamCount.value}
 Average Response Time: ${mockUsage.avg_response_time}s
 
 COMPLIANCE STATUS: ✓ OSHA Ready
@@ -726,11 +723,15 @@ Generated by K.I.N.G. Framework v17.0
 
 /* ROI Card HTML builder */
 function getROICard() {
-  const usagePct = (mockUsage.queries_used / mockUsage.queries_limit) * 100
+  const usagePct =
+    mockUsage.queries_limit > 0
+      ? (mockUsage.queries_used / mockUsage.queries_limit) * 100
+      : 0
   const dailyAvg = mockUsage.queries_used / 18
-  const daysToLimit = Math.round(
-    (mockUsage.queries_limit - mockUsage.queries_used) / (dailyAvg || 1)
-  )
+  const daysToLimit =
+    mockUsage.queries_limit > 0
+      ? Math.round((mockUsage.queries_limit - mockUsage.queries_used) / (dailyAvg || 1))
+      : 0
   const nagBanner =
     usagePct >= 90
       ? `<div style="padding:12px 20px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;background:linear-gradient(135deg,rgba(239,68,68,0.15) 0%,rgba(220,38,38,0.1) 100%);border:1px solid rgba(239,68,68,0.3);"><div style="display:flex;align-items:center;gap:12px;"><span style="font-size:24px;">🚨</span><div><div style="font-weight:600;color:#f87171;">Only ${
@@ -790,6 +791,36 @@ function onExportTriggers(payload) {
 function onResetTriggers() {
   showToast('Triggers reset to defaults')
 }
+
+async function loadDashboardStats() {
+  try {
+    const res = await axios.get('/api/dashboard-stats')
+    if (typeof res.data.queries_used === 'number') {
+      mockUsage.queries_used = res.data.queries_used
+    }
+    if (typeof res.data.queries_limit === 'number') {
+      mockUsage.queries_limit = res.data.queries_limit
+    }
+    if (typeof res.data.team_members === 'number') {
+      teamCount.value = res.data.team_members
+    }
+    if (typeof res.data.avg_response === 'number') {
+      mockUsage.avg_response_time = res.data.avg_response
+    }
+    if (res.data.active_provider) {
+      lastProvider.value = res.data.active_provider
+    }
+    if (res.data.active_model) {
+      lastModel.value = res.data.active_model
+    }
+  } catch (error) {
+    console.error('Failed to load dashboard stats', error)
+  }
+}
+
+onMounted(() => {
+  loadDashboardStats()
+})
 </script>
 
 <style scoped>

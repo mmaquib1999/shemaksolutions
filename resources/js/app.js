@@ -12,14 +12,18 @@ import {
   AlertSuccess
 } from "./bootstrap";
 
-const app = createApp(App);
+const appRoot = document.getElementById("app");
 
-// Register vform components (Tailwind version)
-app.component(Button.name, Button);
-app.component(HasError.name, HasError);
-app.component(AlertError.name, AlertError);
-app.component(AlertErrors.name, AlertErrors);
-app.component(AlertSuccess.name, AlertSuccess);
+if (appRoot) {
+  const app = createApp(App);
 
-app.use(router);
-app.mount("#app");
+  // Register vform components (Tailwind version)
+  app.component(Button.name, Button);
+  app.component(HasError.name, HasError);
+  app.component(AlertError.name, AlertError);
+  app.component(AlertErrors.name, AlertErrors);
+  app.component(AlertSuccess.name, AlertSuccess);
+
+  app.use(router);
+  app.mount(appRoot);
+}

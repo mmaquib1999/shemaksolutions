@@ -39,7 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['verified.code'])->group(function () {
         Route::get('/{any}', function () {
             return view('layouts.app'); // Vue SPA root blade
-        })->where('any', '^(?!api|logout|login|register|verify-code).*$');
+        })->where('any', '^(?!api|logout|login|register|verify-code|forgot-password|reset-password|confirm-password|verify-email|email/verification-notification|password|invitations/accept).*$');
     });
 });
 

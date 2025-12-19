@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\UsageController;
 use App\Http\Controllers\AskKingController;
 use App\Http\Controllers\KingController;
+use App\Http\Controllers\Api\DashboardStatsController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\QuickTriggerController;
 use App\Http\Controllers\VerificationCodeController;
@@ -29,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/provider-keys/{id}', [AiProviderKeyController::class, 'update']);
     Route::put('/provider-keys/{id}/default', [AiProviderKeyController::class, 'setDefault']);
     Route::delete('/provider-keys/{id}', [AiProviderKeyController::class, 'destroy']);
+    Route::get('/dashboard-stats', [DashboardStatsController::class, 'show']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
