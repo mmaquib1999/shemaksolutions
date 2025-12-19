@@ -229,7 +229,7 @@ export default {
         },
         xai: {
           name: "xAI Grok",
-          models: ["grok-3"],
+          models: ["grok-4-latest", "grok-3"],
           color: "#3B82F6",
           icon: "\u{1F680}",
           avatarBg: "linear-gradient(135deg, rgba(59,130,246,0.16), rgba(59,130,246,0.08))",

@@ -32,8 +32,11 @@ class AiProviderKeyController extends Controller
             'is_default' => 'nullable|boolean',
         ]);
 
-        // If user is adding a default, clear previous
-        if ($request->boolean('is_default')) {
+        $isFirstKey = !AiProviderKey::where('user_id', $ownerId)->exists();
+        $shouldDefault = $request->boolean('is_default') || $isFirstKey;
+
+        // If user is adding a default (or it's the first key), clear previous
+        if ($shouldDefault) {
             AiProviderKey::where('user_id', $ownerId)->update(['is_default' => false]);
         }
 
@@ -43,7 +46,7 @@ class AiProviderKeyController extends Controller
             'model' => $request->model,
             'name' => $request->name,
             'api_key' => $request->api_key,
-            'is_default' => $request->boolean('is_default'),
+            'is_default' => $shouldDefault,
             'total_queries' => 0,
         ]);
     }

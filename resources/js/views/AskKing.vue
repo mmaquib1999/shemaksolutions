@@ -125,7 +125,7 @@
                   @click="submitQuery"
                   class="btn"
                   :disabled="loading"
-                  style="padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border:none;color:white;cursor:pointer;opacity:{{ loading ? 0.7 : 1 }};"
+                  style="padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border:none;color:white;cursor:pointer;" :style="{ opacity: loading ? 0.7 : 1 }"
                 >
                   {{ loading ? '⟳ Asking K.I.N.G...' : '🚀 Ask K.I.N.G.' }}
                 </button>
@@ -149,56 +149,6 @@
       @export="onExportTriggers"
       @reset="onResetTriggers"
     /> -->
-
-    <!-- Query History panel -->
-    <div style="margin-top:20px;">
-      <div class="card" style="padding:12px;">
-        <h3 style="font-weight:600;margin-bottom:8px;">Recent Query History ({{ queryHistory.length }} entries)</h3>
-        <div style="max-height:320px;overflow-y:auto;">
-          <div v-if="queryHistory.length === 0" style="text-align:center;padding:40px;color:#64748b;">
-            <div style="font-size:32px;margin-bottom:12px;">🔭</div>
-            <p>No queries yet. Start asking K.I.N.G. safety questions.</p>
-          </div>
-          <div v-else>
-            <div
-              v-for="(q, idx) in recentHistory"
-              :key="q.id"
-              style="padding:12px;border-bottom:1px solid rgba(71,85,105,0.3);"
-            >
-              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <span style="font-weight:600;font-size:13px;">
-                  {{ q.query.length > 60 ? q.query.substring(0, 60) + '...' : q.query }}
-                </span>
-                <span style="font-size:11px;color:#64748b;">{{ formatDate(q.timestamp) }}</span>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <span
-                  class="badge"
-                  style="background:rgba(99,102,241,0.2);color:#818cf8;font-size:10px;padding:4px 8px;border-radius:6px;"
-                >
-                  {{ q.industry }}
-                </span>
-                <span style="font-size:11px;color:#64748b;">by {{ q.user }}</span>
-                <div style="margin-left:auto;display:flex;gap:8px;">
-                  <button
-                    @click="replayQuery(q)"
-                    style="background:none;border:1px solid rgba(71,85,105,0.12);padding:6px 8px;border-radius:6px;cursor:pointer;"
-                  >
-                    ↺ Replay
-                  </button>
-                  <button
-                    @click="downloadQueryText(q)"
-                    style="background:none;border:1px solid rgba(71,85,105,0.12);padding:6px 8px;border-radius:6px;cursor:pointer;"
-                  >
-                    ⬇
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Toast container (empty, created dynamically) -->
   </div>

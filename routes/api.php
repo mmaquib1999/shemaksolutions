@@ -73,6 +73,8 @@ Route::post('/team/invitations/accept', [TeamController::class, 'accept']);
 
 
 Route::middleware('auth:sanctum')->post('/ask-king', [AskKingController::class, 'ask']);
+Route::middleware('auth:sanctum')->get('/ask-king/history', [AskKingController::class, 'history']);
+Route::middleware('auth:sanctum')->post('/ask-king/history', [AskKingController::class, 'storeHistory']);
 
 
 

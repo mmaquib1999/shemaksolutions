@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 
 // Import your pages
 import AskKing from '../views/AskKing.vue'
@@ -8,7 +8,7 @@ import AIProviders from '../views/AIProviders.vue'
 import Leaderboard from '../views/Leaderboard.vue'
 import Team from '../views/Team.vue'
 import Usage from '../views/Analytics.vue'
-import Audit from '../views/Billing.vue'
+import Audit from '../views/Audit.vue'
 import Settings from '../views/Settings.vue'
 import QuickTriggers from '../components/QuickTriggers.vue'
 import VerifyCode from '../views/VerifyCode.vue'
@@ -104,3 +104,4 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
+

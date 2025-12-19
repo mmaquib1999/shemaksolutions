@@ -1,5 +1,10 @@
 <template>
   <div class="settings-page" id="main-content">
+    <div v-if="toasts.length" class="toast-stack">
+      <div v-for="toast in toasts" :key="toast.id" class="toast" :class="toast.type">
+        {{ toast.message }}
+      </div>
+    </div>
     <div class="settings-inner">
       <div class="card dark-card" style="margin-bottom:20px;">
         <h3 style="font-weight:600;margin-bottom:20px;">Account Settings</h3>
@@ -287,6 +292,7 @@ const portalUrl = ref("")
 const portalError = ref("")
 const portalLoading = ref(false)
 const loadingSubscription = ref(false)
+const toasts = ref([])
 
 const cardForm = reactive({
   number: "",
@@ -386,10 +392,12 @@ function saveSettings() {
       form.name = data?.name || form.name
       form.company = data?.company || form.company
       status.value = "Account updated."
+      pushToast(status.value, "success")
     })
     .catch((error) => {
       console.error("Save failed", error)
-      status.value = "Could not save changes."
+      status.value = errorMessage(error)
+      pushToast(status.value, "error")
     })
     .finally(() => {
       saving.value = false
@@ -623,6 +631,24 @@ function handleExpiryInput(event) {
 function handleCvcInput(event) {
   cardForm.cvc = event.target.value.replace(/\D/g, "").slice(0, 4)
 }
+
+function errorMessage(error) {
+  if (error?.response?.data?.errors) {
+    const first = Object.values(error.response.data.errors)[0]
+    if (Array.isArray(first) && first.length) return first[0]
+  }
+  if (error?.response?.data?.message) return error.response.data.message
+  if (error?.message) return error.message
+  return "Could not save changes."
+}
+
+function pushToast(message, type = "success") {
+  const id = Date.now() + Math.random()
+  toasts.value.push({ id, message, type })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
+  }, 3500)
+}
 </script>
 
 <style scoped>
@@ -846,5 +872,32 @@ function handleCvcInput(event) {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.toast {
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #e2e8f0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  min-width: 220px;
+  font-size: 14px;
+}
+
+.toast.success {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.9), rgba(16, 185, 129, 0.9));
+}
+
+.toast.error {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.9), rgba(248, 113, 113, 0.9));
 }
 </style>

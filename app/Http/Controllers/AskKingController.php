@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AskKingQuery;
 use App\Models\AiProviderKey;
 use App\Services\KingIntegratedService;
 use Illuminate\Http\Request;
@@ -47,5 +48,38 @@ class AskKingController extends Controller
         }
 
         return $result;
+    }
+
+    public function storeHistory(Request $request)
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:8000',
+            'response' => 'required|string',
+        ]);
+
+        $ownerId = $request->user()->teamOwnerId();
+
+        $entry = AskKingQuery::create([
+            'user_id' => $ownerId,
+            'message' => trim($validated['message']),
+            'response' => $validated['response'],
+        ]);
+
+        return [
+            'id' => $entry->id,
+            'message' => $entry->message,
+            'response' => $entry->response,
+            'created_at' => $entry->created_at,
+        ];
+    }
+
+    public function history(Request $request)
+    {
+        $ownerId = $request->user()->teamOwnerId();
+
+        return AskKingQuery::where('user_id', $ownerId)
+            ->orderByDesc('id')
+            ->take(50)
+            ->get(['id', 'message', 'response', 'created_at']);
     }
 }
