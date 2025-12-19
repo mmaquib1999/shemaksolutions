@@ -14,6 +14,8 @@ import {
 
 const appRoot = document.getElementById("app");
 
+window.__APP_ROUTER__ = router;
+
 if (appRoot) {
   const app = createApp(App);
 

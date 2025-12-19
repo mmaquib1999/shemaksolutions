@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <!-- ORIGINAL SIDEBAR EXACTLY AS IN THE HTML FILE, now with active highlighting -->
   <aside
     style="width:240px;background:rgba(15,23,42,0.95);border-right:1px solid rgba(71,85,105,0.3);display:flex;flex-direction:column;backdrop-filter:blur(12px);"
@@ -23,15 +23,15 @@
     <!-- Navigation -->
     <nav style="flex:1;padding:12px;overflow-y:auto;">
       <!-- Buttons populated EXACTLY as original nav-btn elements -->
-      <button @click="go('/dashboard')" :class="['nav-btn', isActive('/dashboard') && 'active']">🚀 Ask K.I.N.G.</button>
-      <button @click="go('/triggers')" :class="['nav-btn', isActive('/triggers') && 'active']">⚡ Quick Triggers</button>
-      <button @click="go('/resources')" :class="['nav-btn', isActive('/resources') && 'active']">📚 Resources</button>
-      <button @click="go('/provider')" :class="['nav-btn', isActive('/provider') && 'active']">🔑 AI Providers</button>
-      <button @click="go('/leaderboard')" :class="['nav-btn', isActive('/leaderboard') && 'active']">🏆 Leaderboard</button>
-      <button @click="go('/team')" :class="['nav-btn', isActive('/team') && 'active']">👥 Team</button>
-      <button @click="go('/usage')" :class="['nav-btn', isActive('/usage') && 'active']">📊 Analytics</button>
-      <button @click="go('/audit')" :class="['nav-btn', isActive('/audit') && 'active']">📋 Audit Export</button>
-      <button @click="go('/settings')" :class="['nav-btn', isActive('/settings') && 'active']">⚙️ Settings</button>
+      <button @click="go('/dashboard')" :class="['nav-btn', isActive('/dashboard') && 'active']">&#x1F680; Ask K.I.N.G.</button>
+      <button v-if="isAdmin" @click="go('/triggers')" :class="['nav-btn', isActive('/triggers') && 'active']">&#x26A1; Quick Triggers</button>
+      <button v-if="isOwner" @click="go('/resources')" :class="['nav-btn', isActive('/resources') && 'active']">&#x1F4DA; Resources</button>
+      <button v-if="isAdmin" @click="go('/provider')" :class="['nav-btn', isActive('/provider') && 'active']">&#x1F511; AI Providers</button>
+      <button v-if="isOwner" @click="go('/leaderboard')" :class="['nav-btn', isActive('/leaderboard') && 'active']">&#x1F3C6; Leaderboard</button>
+      <button v-if="isOwner" @click="go('/team')" :class="['nav-btn', isActive('/team') && 'active']">&#x1F465; Team</button>
+      <button v-if="isOwner" @click="go('/usage')" :class="['nav-btn', isActive('/usage') && 'active']">&#x1F4CA; Analytics</button>
+      <button v-if="isAdmin" @click="go('/audit')" :class="['nav-btn', isActive('/audit') && 'active']">&#x1F4CB; Audit Export</button>
+      <button v-if="isOwner" @click="go('/settings')" :class="['nav-btn', isActive('/settings') && 'active']">&#x2699;&#xFE0F; Settings</button>
     </nav>
 
     <!-- Logout -->
@@ -40,20 +40,31 @@
         class="nav-btn"
         @click="logout"
         style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;background:transparent;color:#94a3b8;"
-      >
-        ĐYs¦ Logout
-      </button>
+      >&#x1F6AA; Logout</button>
     </div>
   </aside>
 </template>
 
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 
 const emit = defineEmits(['navigate'])
 const router = useRouter()
 const route = useRoute()
+const teamRole = ref('owner')
+
+onMounted(() => {
+  const stored = localStorage.getItem('team_role')
+  if (stored) {
+    teamRole.value = stored
+  }
+})
+
+const isAdmin = computed(() => teamRole.value === 'owner' || teamRole.value === 'admin')
+const isOwner = computed(() => teamRole.value === 'owner')
+
 
 function navigate(tab) {
   emit('navigate', tab)
@@ -89,3 +100,9 @@ async function logout() {
   color: #22d3ee;
 }
 </style>
+
+
+
+
+
+

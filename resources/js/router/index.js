@@ -18,14 +18,14 @@ const routes = [
   { path: '/', redirect: '/dashboard' },
 
   { path: '/dashboard', name: 'dashboard', component: AskKing },
-  { path: '/triggers', name: 'triggers', component: QuickTriggers },
-  { path: '/resources', name: 'resources', component: Resources },
-  { path: '/provider', name: 'provider', component: AIProviders },
-  { path: '/leaderboard', name: 'leaderboard', component: Leaderboard },
-  { path: '/team', name: 'team', component: Team },
-  { path: '/usage', name: 'usage', component: Usage },
-  { path: '/audit', name: 'audit', component: Audit },
-  { path: '/settings', name: 'settings', component: Settings },
+  { path: '/triggers', name: 'triggers', component: QuickTriggers, meta: { roles: ['owner', 'admin'] } },
+  { path: '/resources', name: 'resources', component: Resources, meta: { roles: ['owner'] } },
+  { path: '/provider', name: 'provider', component: AIProviders, meta: { roles: ['owner', 'admin'] } },
+  { path: '/leaderboard', name: 'leaderboard', component: Leaderboard, meta: { roles: ['owner'] } },
+  { path: '/team', name: 'team', component: Team, meta: { roles: ['owner'] } },
+  { path: '/usage', name: 'usage', component: Usage, meta: { roles: ['owner'] } },
+  { path: '/audit', name: 'audit', component: Audit, meta: { roles: ['owner', 'admin'] } },
+  { path: '/settings', name: 'settings', component: Settings, meta: { roles: ['owner'] } },
   { path: '/verify-code', name: 'verify-code', component: VerifyCode },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
 ]
@@ -41,6 +41,12 @@ router.beforeEach(async (to, from, next) => {
   if (to.path === '/verify-code') {
     try {
       const { data } = await axios.get('/api/user')
+      if (data?.team_role) {
+        localStorage.setItem('team_role', data.team_role)
+      }
+      if (data?.team_owner_id) {
+        localStorage.setItem('team_owner_id', String(data.team_owner_id))
+      }
       if (data?.email_verified_at) {
         return next({ path: '/dashboard' })
       }
@@ -55,6 +61,12 @@ router.beforeEach(async (to, from, next) => {
 
   try {
     const { data } = await axios.get('/api/user')
+    if (data?.team_role) {
+      localStorage.setItem('team_role', data.team_role)
+    }
+    if (data?.team_owner_id) {
+      localStorage.setItem('team_owner_id', String(data.team_owner_id))
+    }
     if (data?.email_verified_at) {
       return next()
     }
@@ -75,6 +87,20 @@ router.beforeEach(async (to, from, next) => {
     // default: continue
     return next()
   }
+})
+
+router.beforeEach(async (to, from, next) => {
+  const roles = to.meta?.roles
+  if (!roles || !roles.length) {
+    return next()
+  }
+
+  const role = localStorage.getItem('team_role') || 'owner'
+  if (roles.includes(role)) {
+    return next()
+  }
+
+  return next({ path: '/dashboard' })
 })
 
 export default router

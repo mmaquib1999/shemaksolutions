@@ -9,7 +9,7 @@
     <div class="top">
       <div>
         <p class="muted">Manage your team members</p>
-        <p class="muted fine">{{ members.length }} of {{ seatLimit }} seats used</p>
+        <p class="muted fine">{{ members.length }} of {{ seatLimitLabel }} seats used</p>
       </div>
       <button class="btn" @click="openInvite">+ Invite</button>
     </div>
@@ -111,11 +111,13 @@
 
 <script setup>
 import axios from 'axios'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Form } from 'vform'
 
 const members = ref([])
-const seatLimit = ref(10)
+const seatLimit = ref(null)
+const inviteLimit = ref(null)
+const canInvite = ref(true)
 const loading = ref(false)
 
 const showInvite = ref(false)
@@ -133,6 +135,11 @@ const deletingId = ref(null)
 const sendingDelete = ref(false)
 
 onMounted(loadMembers)
+
+const seatLimitLabel = computed(() => {
+  if (seatLimit.value === null || seatLimit.value === undefined) return 'Unlimited'
+  return seatLimit.value
+})
 
 function avatarInitial(name = '') {
   return name?.trim()?.charAt(0)?.toUpperCase() || '?'
@@ -166,6 +173,15 @@ function openInvite() {
   inviteError.value = ''
   inviteSuccess.value = ''
   inviteForm.errors.clear()
+  if (!canInvite.value) {
+    const message =
+      inviteLimit.value === 0
+        ? 'Upgrade the plan to invite team members.'
+        : 'Team member limit reached. Upgrade your plan to invite more.'
+    inviteError.value = message
+    pushToast(message, 'error')
+    return
+  }
   showInvite.value = true
 }
 
@@ -184,7 +200,9 @@ async function loadMembers() {
   try {
     const { data } = await axios.get('/api/team')
     members.value = data?.members || []
-    seatLimit.value = data?.seat_limit || data?.seatLimit || members.value.length
+    seatLimit.value = data?.seat_limit ?? data?.seatLimit ?? members.value.length
+    inviteLimit.value = data?.invite_limit ?? null
+    canInvite.value = data?.can_invite ?? true
   } catch (error) {
     inviteError.value = errorMessage(error)
   } finally {
@@ -196,6 +214,16 @@ async function sendInvite() {
   inviteError.value = ''
   inviteSuccess.value = ''
   inviteForm.errors.clear()
+
+  if (!canInvite.value) {
+    const message =
+      inviteLimit.value === 0
+        ? 'Upgrade the plan to invite team members.'
+        : 'Team member limit reached. Upgrade your plan to invite more.'
+    inviteError.value = message
+    pushToast(message, 'error')
+    return
+  }
 
   const name = inviteForm.name?.trim()
   const email = inviteForm.email?.trim()

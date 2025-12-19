@@ -16,8 +16,11 @@ class AskKingController extends Controller
             'compression_level' => ['sometimes', 'integer', 'min:0', 'max:3'],
         ]);
 
+        $user = $request->user();
+        $ownerId = $user->teamOwnerId();
+
         // Provider/model are not sent from Vue; fetch the user's default/first ai_provider_key
-        $key = AiProviderKey::where('user_id', Auth::id())
+        $key = AiProviderKey::where('user_id', $ownerId)
             ->orderByDesc('is_default')
             ->first();
 
@@ -35,7 +38,7 @@ class AskKingController extends Controller
 
         // Delegate to the King Integrated service (keeping its logic untouched)
         try {
-            $result = $king->ask(Auth::id(), $message, $provider, $model, $compression);
+            $result = $king->ask($ownerId, $message, $provider, $model, $compression);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,

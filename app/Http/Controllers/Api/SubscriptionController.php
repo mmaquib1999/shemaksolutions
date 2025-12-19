@@ -212,6 +212,7 @@ class SubscriptionController extends Controller
                     'amount_formatted' => $this->formatAmount($plan['amount']),
                     'interval' => $plan['interval'],
                     'query_limit' => $plan['query_limit'],
+                    'team_limit' => $plan['team_limit'] ?? null,
                 ];
             })
             ->values()
@@ -317,6 +318,7 @@ class SubscriptionController extends Controller
             'cancel_at' => $subscription?->ends_at?->toDateString(),
             'on_grace_period' => $subscription?->onGracePeriod() ?? false,
             'is_active' => $subscription?->valid() ?? $isStarterDefault,
+            'team_limit' => $plan['team_limit'] ?? null,
         ];
     }
 

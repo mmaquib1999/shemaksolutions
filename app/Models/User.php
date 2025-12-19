@@ -66,4 +66,22 @@ class User extends Authenticatable
     {
         return $this->hasMany(AiProviderKey::class);
     }
+
+    public function teamRole(): string
+    {
+        $membership = TeamMember::where('user_id', $this->id)
+            ->where('status', 'accepted')
+            ->first();
+
+        return $membership?->role ?? 'owner';
+    }
+
+    public function teamOwnerId(): int
+    {
+        $membership = TeamMember::where('user_id', $this->id)
+            ->where('status', 'accepted')
+            ->first();
+
+        return (int) ($membership?->owner_id ?? $this->id);
+    }
 }

@@ -12,8 +12,9 @@ class DashboardStatsController extends Controller
     public function show(Request $request)
     {
         $user = $request->user();
+        $ownerId = $user->teamOwnerId();
 
-        $keys = AiProviderKey::where('user_id', $user->id)->get();
+        $keys = AiProviderKey::where('user_id', $ownerId)->get();
         $queriesUsed = (int) $keys->sum('total_queries');
         $queriesLimit = 10000;
 
@@ -23,11 +24,11 @@ class DashboardStatsController extends Controller
         $providerName = $defaultKey?->name;
         $providerModel = $defaultKey?->model;
 
-        $teamMembers = 1 + TeamMember::where('owner_id', $user->id)
+        $teamMembers = 1 + TeamMember::where('owner_id', $ownerId)
             ->where('status', 'accepted')
             ->count();
 
-        $avgResponse = $this->estimateAvgResponse($queriesUsed, $user->id);
+        $avgResponse = $this->estimateAvgResponse($queriesUsed, $ownerId);
 
         return response()->json([
             'queries_used' => $queriesUsed,

@@ -5,15 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AiProviderKey;
 use App\Models\TeamMember;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 
 class UsageController extends Controller
 {
     public function index(Request $request)
     {
-        $owner = $request->user();
+        $viewer = $request->user();
+        $ownerId = $viewer->teamOwnerId();
+        $owner = $ownerId === $viewer->id ? $viewer : User::findOrFail($ownerId);
 
         // Collect the owner + accepted team members with linked users
         $teamUserIds = TeamMember::where('owner_id', $owner->id)

@@ -9,6 +9,7 @@ return [
             'amount' => 0,
             'interval' => 'month',
             'query_limit' => 100,
+            'team_limit' => 0,
         ],
         'pro' => [
             'name' => 'Professional',
@@ -16,6 +17,7 @@ return [
             'amount' => 9900,
             'interval' => 'month',
             'query_limit' => 10000,
+            'team_limit' => 5,
         ],
         'enterprise' => [
             'name' => 'Enterprise',
@@ -23,6 +25,7 @@ return [
             'amount' => 29900,
             'interval' => 'month',
             'query_limit' => null,
+            'team_limit' => null,
         ],
     ],
     'default_plan' => env('STRIPE_DEFAULT_PLAN', 'starter'),

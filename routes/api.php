@@ -25,22 +25,21 @@ use App\Http\Controllers\QuickTriggerController;
 use App\Http\Controllers\VerificationCodeController;
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard-stats', [DashboardStatsController::class, 'show']);
+});
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Verification code endpoints
+    Route::post('/verify-code', [VerificationCodeController::class, 'verify']);
+    Route::post('/verify-code/resend', [VerificationCodeController::class, 'resend']);
+});
+
+Route::middleware(['auth:sanctum', 'team.role:owner,admin'])->group(function () {
     Route::get('/provider-keys', [AiProviderKeyController::class, 'index']);
     Route::post('/provider-keys', [AiProviderKeyController::class, 'store']);
     Route::put('/provider-keys/{id}', [AiProviderKeyController::class, 'update']);
     Route::put('/provider-keys/{id}/default', [AiProviderKeyController::class, 'setDefault']);
     Route::delete('/provider-keys/{id}', [AiProviderKeyController::class, 'destroy']);
-    Route::get('/dashboard-stats', [DashboardStatsController::class, 'show']);
-});
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/account', [AccountController::class, 'show']);
-    Route::put('/account', [AccountController::class, 'update']);
-
-    Route::get('/team', [TeamController::class, 'index']);
-    Route::post('/team/invitations', [TeamController::class, 'invite']);
-    Route::delete('/team/members/{member}', [TeamController::class, 'destroy']);
-    Route::get('/usage', [UsageController::class, 'index']);
 
     // Quick Triggers
     Route::get('/quick-triggers', [QuickTriggerController::class, 'index']);
@@ -49,10 +48,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/quick-triggers/categories/{category}/triggers', [QuickTriggerController::class, 'storeTrigger']);
     Route::delete('/quick-triggers/categories/{category}/triggers/{trigger}', [QuickTriggerController::class, 'destroyTrigger']);
     Route::post('/quick-triggers/reset', [QuickTriggerController::class, 'reset']);
+});
 
-    // Verification code endpoints
-    Route::post('/verify-code', [VerificationCodeController::class, 'verify']);
-    Route::post('/verify-code/resend', [VerificationCodeController::class, 'resend']);
+Route::middleware(['auth:sanctum', 'team.role:owner'])->group(function () {
+    Route::get('/account', [AccountController::class, 'show']);
+    Route::put('/account', [AccountController::class, 'update']);
+
+    Route::get('/team', [TeamController::class, 'index']);
+    Route::post('/team/invitations', [TeamController::class, 'invite']);
+    Route::delete('/team/members/{member}', [TeamController::class, 'destroy']);
+    Route::get('/usage', [UsageController::class, 'index']);
 
     Route::get('/subscription', [SubscriptionController::class, 'show']);
     Route::post('/subscription/checkout', [SubscriptionController::class, 'checkout']);
@@ -72,5 +77,14 @@ Route::middleware('auth:sanctum')->post('/ask-king', [AskKingController::class, 
 
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    $user = $request->user();
+
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'email_verified_at' => $user->email_verified_at,
+        'team_role' => $user->teamRole(),
+        'team_owner_id' => $user->teamOwnerId(),
+    ];
 });

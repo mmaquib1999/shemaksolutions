@@ -12,7 +12,9 @@ class AiProviderKeyController extends Controller
     // GET all keys for logged-in user
     public function index()
     {
-        return AiProviderKey::where('user_id', Auth::id())
+        $ownerId = Auth::user()->teamOwnerId();
+
+        return AiProviderKey::where('user_id', $ownerId)
             ->orderByDesc('is_default')
             ->get();
     }
@@ -20,6 +22,8 @@ class AiProviderKeyController extends Controller
     // POST create key
     public function store(Request $request)
     {
+        $ownerId = Auth::user()->teamOwnerId();
+
         $request->validate([
             'provider' => 'required|string',
             'model' => 'required|string',
@@ -30,11 +34,11 @@ class AiProviderKeyController extends Controller
 
         // If user is adding a default, clear previous
         if ($request->boolean('is_default')) {
-            AiProviderKey::where('user_id', Auth::id())->update(['is_default' => false]);
+            AiProviderKey::where('user_id', $ownerId)->update(['is_default' => false]);
         }
 
         return AiProviderKey::create([
-            'user_id' => Auth::id(),
+            'user_id' => $ownerId,
             'provider' => $request->provider,
             'model' => $request->model,
             'name' => $request->name,
@@ -47,8 +51,10 @@ class AiProviderKeyController extends Controller
     // PUT update key
     public function update(Request $request, $id)
     {
+        $ownerId = Auth::user()->teamOwnerId();
+
         $key = AiProviderKey::where('id', $id)
-            ->where('user_id', Auth::id())
+            ->where('user_id', $ownerId)
             ->firstOrFail();
 
         $validated = $request->validate([
@@ -60,7 +66,7 @@ class AiProviderKeyController extends Controller
         ]);
 
         if ($request->boolean('is_default')) {
-            AiProviderKey::where('user_id', Auth::id())->update(['is_default' => false]);
+            AiProviderKey::where('user_id', $ownerId)->update(['is_default' => false]);
         }
 
         $payload = [
@@ -85,10 +91,12 @@ class AiProviderKeyController extends Controller
     // PUT Set default key
     public function setDefault($id)
     {
-        AiProviderKey::where('user_id', Auth::id())->update(['is_default' => false]);
+        $ownerId = Auth::user()->teamOwnerId();
+
+        AiProviderKey::where('user_id', $ownerId)->update(['is_default' => false]);
 
         $key = AiProviderKey::where('id', $id)
-            ->where('user_id', Auth::id())
+            ->where('user_id', $ownerId)
             ->firstOrFail();
 
         $key->update(['is_default' => true]);
@@ -99,8 +107,10 @@ class AiProviderKeyController extends Controller
     // DELETE key
     public function destroy($id)
     {
+        $ownerId = Auth::user()->teamOwnerId();
+
         $key = AiProviderKey::where('id', $id)
-            ->where('user_id', Auth::id())
+            ->where('user_id', $ownerId)
             ->firstOrFail();
 
         if ($key->is_default) {

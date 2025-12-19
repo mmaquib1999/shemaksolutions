@@ -31,20 +31,32 @@ axios.defaults.baseURL =
 // Required before login (Sanctum)
 window.getCsrfCookie = () => axios.get("/sanctum/csrf-cookie");
 
-// Global response handler: redirect to verify or login as needed
+// Global response handler: route to verify or login as needed (no full reload)
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
     const message = error?.response?.data?.message;
 
+    const spaNavigate = (path) => {
+      const router = window.__APP_ROUTER__;
+      if (router && typeof router.push === "function") {
+        router.push(path);
+        return;
+      }
+      if (window.location.pathname !== path) {
+        window.history.pushState({}, "", path);
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      }
+    };
+
     if (status === 403 && message === "verification_required") {
       if (window.location.pathname !== "/verify-code") {
-        window.location.href = "/verify-code";
+        spaNavigate("/verify-code");
       }
     } else if (status === 401) {
       if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+        spaNavigate("/login");
       }
     }
 
@@ -60,4 +72,3 @@ export {
   AlertErrors,
   AlertSuccess
 };
-

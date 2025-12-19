@@ -206,9 +206,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { Form } from 'vform'
+import { useRoute, useRouter } from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import Header from '../components/Header.vue'
 import QuickTriggers from '../components/QuickTriggers.vue'
@@ -380,6 +381,8 @@ const form = new Form({
 })
 const teamCount = ref(teamMembers.value.length)
 const apiError = ref('')
+const route = useRoute()
+const router = useRouter()
 
 // last provider info from API
 const lastProvider = ref('')
@@ -534,6 +537,16 @@ async function handleQuery(query) {
 
   // bump mock usage a bit to simulate real usage
   mockUsage.queries_used++
+}
+
+async function runQueryFromRoute(value) {
+  const query = (Array.isArray(value) ? value[0] : value || '').trim()
+  if (!query) return
+  await nextTick()
+  await handleQuery(query)
+  const nextQuery = { ...route.query }
+  delete nextQuery.ask
+  router.replace({ path: route.path, query: nextQuery })
 }
 
 /* Render response area with controls (export buttons + high risk badge) */
@@ -820,7 +833,19 @@ async function loadDashboardStats() {
 
 onMounted(() => {
   loadDashboardStats()
+  if (route.query.ask) {
+    runQueryFromRoute(route.query.ask)
+  }
 })
+
+watch(
+  () => route.query.ask,
+  (value) => {
+    if (value) {
+      runQueryFromRoute(value)
+    }
+  }
+)
 </script>
 
 <style scoped>

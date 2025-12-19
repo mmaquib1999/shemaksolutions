@@ -95,6 +95,7 @@
                 {{ plan.amount_formatted || '$0.00' }}<span style="font-size:12px;color:#64748b;">/mo</span>
               </div>
               <div style="font-size:11px;color:#64748b;">{{ plan.query_limit ? formatNumber(plan.query_limit) + '/mo' : 'Unlimited' }}</div>
+              <div style="font-size:11px;color:#64748b;">{{ formatTeamLimit(plan) }}</div>
               <div v-if="plan.price_id === subscription.priceId" style="font-size:10px;color:#22d3ee;margin-top:4px;">Current Plan</div>
               <button
                 v-else
@@ -346,9 +347,9 @@ async function loadSubscription() {
     availablePlans.value = data?.plans || []
     if (!availablePlans.value.length) {
       availablePlans.value = [
-        { name: "Starter", amount_formatted: "$0.00", query_limit: 100, price_id: "price_dummy_starter" },
-        { name: "Professional", amount_formatted: "$99.00", query_limit: 10000, price_id: "price_dummy_pro" },
-        { name: "Enterprise", amount_formatted: "$299.00", query_limit: null, price_id: "price_dummy_enterprise" },
+        { name: "Starter", amount_formatted: "$0.00", query_limit: 100, team_limit: 0, price_id: "price_dummy_starter" },
+        { name: "Professional", amount_formatted: "$99.00", query_limit: 10000, team_limit: 5, price_id: "price_dummy_pro" },
+        { name: "Enterprise", amount_formatted: "$299.00", query_limit: null, team_limit: null, price_id: "price_dummy_enterprise" },
       ]
     }
     invoices.splice(0, invoices.length, ...(data?.invoices || []))
@@ -449,7 +450,7 @@ function openPaymentForPlan(plan) {
 async function visitPortal() {
   const url = await ensurePortalUrl()
   if (url) {
-    window.open(url, "_blank", "noopener")
+    window.location.href = url
   }
 }
 
@@ -470,10 +471,11 @@ async function startCheckout(priceId) {
   }
 
   try {
+    const origin = window.location.origin || `${window.location.protocol}//${window.location.host}`
+    const successUrl = new URL("/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}", origin).toString()
+    const cancelUrl = new URL("/settings?checkout=cancelled", origin).toString()
     const { data } = await axios.post("/api/subscription/checkout", {
       price_id: targetPrice,
-      success_url: window.location.origin + "/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: window.location.origin + "/settings?checkout=cancelled",
     })
 
     if (data?.url) {
@@ -545,6 +547,13 @@ function downloadInvoice(id) {
 function formatNumber(value) {
   if (value === null || value === undefined) return "0"
   return Number(value).toLocaleString()
+}
+
+function formatTeamLimit(plan) {
+  if (!plan) return "Invites: -"
+  if (plan.team_limit === null || plan.team_limit === undefined) return "Invites: Unlimited"
+  if (plan.team_limit === 0) return "Invites: 0"
+  return `Invites: Up to ${plan.team_limit}`
 }
 
 function formatDate(date) {

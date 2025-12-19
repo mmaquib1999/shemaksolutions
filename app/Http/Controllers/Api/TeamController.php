@@ -12,19 +12,26 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Laravel\Cashier\Subscription;
 
 class TeamController extends Controller
 {
     public function index(Request $request)
     {
-        $user = $request->user();
+        $actor = $request->user();
+        $ownerId = $actor->teamOwnerId();
+        $owner = $ownerId === $actor->id ? $actor : User::findOrFail($ownerId);
+        $inviteLimit = $this->inviteLimitFor($owner);
+        $currentInvites = TeamMember::where('owner_id', $ownerId)->count();
+        $canInvite = $inviteLimit === null ? true : $currentInvites < $inviteLimit;
+        $seatLimit = $inviteLimit === null ? null : $inviteLimit + 1;
 
-        $memberUserIds = TeamMember::where('owner_id', $user->id)
+        $memberUserIds = TeamMember::where('owner_id', $ownerId)
             ->whereNotNull('user_id')
             ->pluck('user_id')
             ->all();
 
-        $userIds = collect([$user->id])
+        $userIds = collect([$owner->id])
             ->concat($memberUserIds)
             ->unique()
             ->values();
@@ -34,7 +41,7 @@ class TeamController extends Controller
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
 
-        $invitations = TeamMember::where('owner_id', $user->id)
+        $invitations = TeamMember::where('owner_id', $ownerId)
             ->orderByRaw("status = 'pending' desc")
             ->orderByDesc('created_at')
             ->get()
@@ -53,25 +60,40 @@ class TeamController extends Controller
             });
 
         $members = collect([[
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
+            'id' => $owner->id,
+            'name' => $owner->name,
+            'email' => $owner->email,
             'role' => 'owner',
             'status' => 'active',
             'is_owner' => true,
-            'total_queries' => (int) ($queriesByUser[$user->id] ?? 0),
-            'accepted_at' => $user->email_verified_at,
+            'total_queries' => (int) ($queriesByUser[$owner->id] ?? 0),
+            'accepted_at' => $owner->email_verified_at,
         ]])->concat($invitations)->values();
 
         return response()->json([
-            'seat_limit' => 10,
+            'plan_name' => $this->planForUser($owner)['name'] ?? null,
+            'invite_limit' => $inviteLimit,
+            'seat_limit' => $seatLimit,
+            'can_invite' => $canInvite,
             'members' => $members,
         ]);
     }
 
     public function invite(Request $request)
     {
-        $user = $request->user();
+        $actor = $request->user();
+        $ownerId = $actor->teamOwnerId();
+        $owner = $ownerId === $actor->id ? $actor : User::findOrFail($ownerId);
+        $inviteLimit = $this->inviteLimitFor($owner);
+        $currentInvites = TeamMember::where('owner_id', $ownerId)->count();
+
+        if ($inviteLimit !== null && $currentInvites >= $inviteLimit) {
+            $message = $inviteLimit === 0
+                ? 'Upgrade the plan to invite team members.'
+                : 'Team member limit reached. Upgrade your plan to invite more.';
+
+            return response()->json(['message' => $message], 403);
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -79,8 +101,8 @@ class TeamController extends Controller
                 'required',
                 'email',
                 'max:255',
-                Rule::notIn([$user->email]),
-                Rule::unique('team_members', 'email')->where(fn ($q) => $q->where('owner_id', $user->id)),
+                Rule::notIn([$owner->email]),
+                Rule::unique('team_members', 'email')->where(fn ($q) => $q->where('owner_id', $ownerId)),
             ],
             'role' => ['required', Rule::in(['admin', 'member'])],
         ]);
@@ -103,8 +125,8 @@ class TeamController extends Controller
         $token = Str::random(40);
 
         $invitation = TeamMember::create([
-            'owner_id' => $user->id,
-            'invited_by' => $user->id,
+            'owner_id' => $ownerId,
+            'invited_by' => $actor->id,
             'user_id' => $invitee->id,
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -191,8 +213,9 @@ class TeamController extends Controller
     public function destroy(Request $request, TeamMember $member)
     {
         $user = $request->user();
+        $ownerId = $user->teamOwnerId();
 
-        if ($member->owner_id !== $user->id) {
+        if ($member->owner_id !== $ownerId) {
             return response()->json(['message' => 'You are not authorized to remove this member.'], 403);
         }
 
@@ -203,5 +226,37 @@ class TeamController extends Controller
         $member->delete();
 
         return response()->json(['message' => 'Team member removed.']);
+    }
+
+    private function inviteLimitFor(User $user): ?int
+    {
+        $plan = $this->planForUser($user);
+
+        return $plan['team_limit'] ?? 0;
+    }
+
+    private function planForUser(User $user): array
+    {
+        $plans = collect(config('subscriptions.plans', []));
+        if ($plans->isEmpty()) {
+            return [];
+        }
+
+        /** @var Subscription|null $subscription */
+        $subscription = $user->subscription('default');
+        if ($subscription && $subscription->stripe_price) {
+            $matched = $plans->first(fn ($plan) => ($plan['price_id'] ?? null) === $subscription->stripe_price);
+            if ($matched) {
+                return $matched;
+            }
+        }
+
+        $defaultKey = config('subscriptions.default_plan');
+        if ($defaultKey && $plans->has($defaultKey)) {
+            return $plans->get($defaultKey);
+        }
+
+        $starter = $plans->firstWhere('name', 'Starter');
+        return $starter ?? $plans->first();
     }
 }

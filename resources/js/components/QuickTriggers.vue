@@ -152,6 +152,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
 const emit = defineEmits([
@@ -163,6 +164,8 @@ const emit = defineEmits([
   'export',
   'reset',
 ])
+const router = useRouter()
+const route = useRoute()
 
 const baseCategoriesSeed = [
   {
@@ -313,6 +316,9 @@ async function loadCategories() {
 
 function handleTrigger(action) {
   emit('select', action)
+  if (route.path !== '/dashboard') {
+    router.push({ path: '/dashboard', query: { ask: action } })
+  }
 }
 
 async function removeTrigger(category, trigger) {
