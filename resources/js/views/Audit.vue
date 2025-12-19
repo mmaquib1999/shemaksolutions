@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="audit-page">
     <div id="audit-only"></div>
   </div>
@@ -15,16 +15,133 @@ import axios from "axios"
         let teamMembers = [{ id: 1, name: 'Claudino Nelson', email: 'claudino@shemaksolutions.ca', role: 'owner', queries: 1847, badges: ['loto', 'ppe', 'fire'], streak: 12 }, { id: 2, name: 'Sarah Johnson', email: 'sarah@company.com', role: 'admin', queries: 623, badges: ['electrical'], streak: 8 }];
         let queryHistory = [];
         const industries = [
-            { id: 'construction', name: 'Construction', color: '#F59E0B', emoji: 'ðŸ—ï¸', prompts: [{ label: 'Fall Protection', query: 'Fall protection requirements for heights above 6 feet', icon: 'ðŸª‚' }, { label: 'Scaffolding', query: 'OSHA scaffolding safety requirements', icon: 'ðŸ—ï¸' }, { label: 'PPE Requirements', query: 'What PPE is required on a construction site?', icon: 'ðŸ¦º' }] },
-            { id: 'manufacturing', name: 'Manufacturing', color: '#6366F1', emoji: 'ðŸ­', prompts: [{ label: 'Machine Guarding', query: 'Machine guarding requirements', icon: 'âš™ï¸' }, { label: 'LOTO Procedures', query: 'Lockout/tagout procedures step by step', icon: 'ðŸ”’' }, { label: 'Forklift Operations', query: 'Powered industrial truck safety requirements', icon: 'ðŸšœ' }] },
-            { id: 'oilgas', name: 'Oil & Gas', color: '#EF4444', emoji: 'ðŸ›¢ï¸', prompts: [{ label: 'H2S Safety', query: 'H2S safety requirements and exposure limits', icon: 'â˜ ï¸' }, { label: 'Hot Work Permits', query: 'Hot work permit requirements', icon: 'ðŸ”¥' }, { label: 'Confined Space', query: 'Confined space entry requirements', icon: 'ðŸšª' }] },
-            { id: 'healthcare', name: 'Healthcare', color: '#EC4899', emoji: 'ðŸ¥', prompts: [{ label: 'Bloodborne Pathogens', query: 'Bloodborne pathogen exposure control', icon: 'ðŸ©¸' }, { label: 'Sharps Safety', query: 'Sharps injury prevention requirements', icon: 'ðŸ’‰' }] },
-            { id: 'agriculture', name: 'Agriculture', color: '#84CC16', emoji: 'ðŸŒ¾', prompts: [{ label: 'Tractor Safety', query: 'Agricultural tractor and machinery safety', icon: 'ðŸšœ' }, { label: 'Grain Handling', query: 'Grain bin and silo entry safety', icon: 'ðŸŒ¾' }] },
-            { id: 'warehouse', name: 'Warehouse', color: '#8B5CF6', emoji: 'ðŸ“¦', prompts: [{ label: 'Forklift Safety', query: 'Warehouse forklift operation requirements', icon: 'ðŸšœ' }, { label: 'Rack Safety', query: 'Pallet rack safety and inspection', icon: 'ðŸ—„ï¸' }] }
-        ];
-        const navItems = [{ id: 'query', icon: 'ðŸš€', label: 'Ask K.I.N.G.' }, { id: 'triggers', icon: 'âš¡', label: 'Quick Triggers' }, { id: 'resources', icon: 'ðŸ“š', label: 'Resources' }, { id: 'leaderboard', icon: 'ðŸ†', label: 'Leaderboard' }, { id: 'keys', icon: 'ðŸ”‘', label: 'AI Providers' }, { id: 'team', icon: 'ðŸ‘¥', label: 'Team' }, { id: 'usage', icon: 'ðŸ“Š', label: 'Analytics' }, { id: 'audit', icon: 'ðŸ“‹', label: 'Audit Export' }, { id: 'settings', icon: 'âš™ï¸', label: 'Settings' }];
-        const emojiTriggers = [{ emoji: 'ðŸ”¥', action: 'Fire safety and emergency procedures', cat: 'Emergency' }, { emoji: 'âš¡', action: 'Electrical safety requirements', cat: 'Hazards' }, { emoji: 'â˜ ï¸', action: 'Toxic substance handling', cat: 'Hazards' }, { emoji: 'ðŸ”’', action: 'Lockout/Tagout procedures', cat: 'Procedures' }, { emoji: 'ðŸ¦º', action: 'PPE requirements', cat: 'Equipment' }, { emoji: 'ðŸš¨', action: 'Emergency response procedures', cat: 'Emergency' }, { emoji: 'âš ï¸', action: 'Hazard identification', cat: 'Hazards' }, { emoji: 'ðŸ©¹', action: 'First aid procedures', cat: 'Emergency' }, { emoji: 'ðŸ˜·', action: 'Respiratory protection', cat: 'Equipment' }, { emoji: 'ðŸ‘‚', action: 'Hearing protection requirements', cat: 'Equipment' }, { emoji: 'ðŸ‘€', action: 'Eye protection requirements', cat: 'Equipment' }, { emoji: 'ðŸ§¤', action: 'Hand protection requirements', cat: 'Equipment' }, { emoji: 'ðŸ¥¾', action: 'Foot protection requirements', cat: 'Equipment' }, { emoji: 'ðŸªœ', action: 'Ladder safety', cat: 'Equipment' }, { emoji: 'ðŸ—ï¸', action: 'Scaffolding safety', cat: 'Construction' }, { emoji: 'ðŸšœ', action: 'Heavy equipment safety', cat: 'Equipment' }, { emoji: 'ðŸ’¨', action: 'Ventilation requirements', cat: 'Environment' }, { emoji: 'ðŸŒ¡ï¸', action: 'Heat/cold stress prevention', cat: 'Environment' }, { emoji: 'ðŸ“‹', action: 'Safety inspection checklist', cat: 'Procedures' }, { emoji: 'ðŸ“', action: 'Incident reporting procedures', cat: 'Procedures' }];
+    { id: 'construction', name: 'Construction', color: '#F59E0B', emoji: '🏗️', prompts: [
+        { label: 'Fall Protection', query: 'Fall protection requirements for heights above 6 feet', icon: '🪂' },
+        { label: 'Scaffolding', query: 'OSHA scaffolding safety requirements', icon: '🏗️' },
+        { label: 'PPE Requirements', query: 'What PPE is required on a construction site?', icon: '🦺' }
+    ] },
+    { id: 'manufacturing', name: 'Manufacturing', color: '#6366F1', emoji: '🏭', prompts: [
+        { label: 'Machine Guarding', query: 'Machine guarding requirements', icon: '⚙️' },
+        { label: 'LOTO Procedures', query: 'Lockout/tagout procedures step by step', icon: '🔒' },
+        { label: 'Forklift Operations', query: 'Powered industrial truck safety requirements', icon: '🚜' }
+    ] },
+    { id: 'oilgas', name: 'Oil & Gas', color: '#EF4444', emoji: '🛢️', prompts: [
+        { label: 'H2S Safety', query: 'H2S safety requirements and exposure limits', icon: '☠️' },
+        { label: 'Hot Work Permits', query: 'Hot work permit requirements', icon: '🔥' },
+        { label: 'Confined Space', query: 'Confined space entry requirements', icon: '🚪' }
+    ] },
+    { id: 'healthcare', name: 'Healthcare', color: '#EC4899', emoji: '🏥', prompts: [
+        { label: 'Bloodborne Pathogens', query: 'Bloodborne pathogen exposure control', icon: '🩸' },
+        { label: 'Sharps Safety', query: 'Sharps injury prevention requirements', icon: '💉' }
+    ] },
+    { id: 'agriculture', name: 'Agriculture', color: '#84CC16', emoji: '🌾', prompts: [
+        { label: 'Tractor Safety', query: 'Agricultural tractor and machinery safety', icon: '🚜' },
+        { label: 'Grain Handling', query: 'Grain bin and silo entry safety', icon: '🌾' }
+    ] },
+    { id: 'warehouse', name: 'Warehouse', color: '#8B5CF6', emoji: '📦', prompts: [
+        { label: 'Forklift Safety', query: 'Warehouse forklift operation requirements', icon: '🚜' },
+        { label: 'Rack Safety', query: 'Pallet rack safety and inspection', icon: '🗄️' }
+    ] }
+];
+        const navItems = [
+    { id: 'query', icon: '🛡️', label: 'Ask K.I.N.G.' },
+    { id: 'triggers', icon: '⚡', label: 'Quick Triggers' },
+    { id: 'resources', icon: '📚', label: 'Resources' },
+    { id: 'leaderboard', icon: '🏆', label: 'Leaderboard' },
+    { id: 'keys', icon: '🔑', label: 'AI Providers' },
+    { id: 'team', icon: '👥', label: 'Team' },
+    { id: 'usage', icon: '📈', label: 'Analytics' },
+    { id: 'audit', icon: '📋', label: 'Audit Export' },
+    { id: 'settings', icon: '⚙️', label: 'Settings' }
+];
+        const emojiTriggers = [
+    { emoji: '🔥', action: 'Fire safety and emergency procedures', cat: 'Emergency' },
+    { emoji: '⚡', action: 'Electrical safety requirements', cat: 'Hazards' },
+    { emoji: '☠️', action: 'Toxic substance handling', cat: 'Hazards' },
+    { emoji: '🔒', action: 'Lockout/Tagout procedures', cat: 'Procedures' },
+    { emoji: '🦺', action: 'PPE requirements', cat: 'Equipment' },
+    { emoji: '🚨', action: 'Emergency response procedures', cat: 'Emergency' },
+    { emoji: '🧐', action: 'Hazard identification', cat: 'Hazards' },
+    { emoji: '🩹', action: 'First aid procedures', cat: 'Emergency' },
+    { emoji: '😷', action: 'Respiratory protection', cat: 'Equipment' },
+    { emoji: '🔊', action: 'Hearing protection requirements', cat: 'Equipment' },
+    { emoji: '🕶️', action: 'Eye protection requirements', cat: 'Equipment' },
+    { emoji: '🧤', action: 'Hand protection requirements', cat: 'Equipment' },
+    { emoji: '🥾', action: 'Foot protection requirements', cat: 'Equipment' },
+    { emoji: '🪜', action: 'Ladder safety', cat: 'Equipment' },
+    { emoji: '🏗️', action: 'Scaffolding safety', cat: 'Construction' },
+    { emoji: '🚜', action: 'Heavy equipment safety', cat: 'Equipment' },
+    { emoji: '🌬️', action: 'Ventilation requirements', cat: 'Environment' },
+    { emoji: '🔥❄️', action: 'Heat/cold stress prevention', cat: 'Environment' },
+    { emoji: '✅', action: 'Safety inspection checklist', cat: 'Procedures' },
+    { emoji: '📣', action: 'Incident reporting procedures', cat: 'Procedures' }
+];
         const safetyResources = { canada: [{ name: 'CCOHS - Canadian Centre for Occupational Health & Safety', url: 'https://www.ccohs.ca/', desc: 'National centre for workplace health and safety information' }, { name: 'WorkSafeBC', url: 'https://www.worksafebc.com/', desc: 'British Columbia workplace safety' }, { name: 'Alberta OHS', url: 'https://www.alberta.ca/occupational-health-safety.aspx', desc: 'Alberta Occupational Health & Safety' }, { name: 'Saskatchewan WorkSafe', url: 'https://www.worksafesask.ca/', desc: 'Saskatchewan workplace safety' }, { name: 'Safe Work Manitoba', url: 'https://www.safemanitoba.com/', desc: 'Manitoba workplace safety' }, { name: 'Ontario MOL', url: 'https://www.ontario.ca/page/workplace-health-and-safety', desc: 'Ontario Ministry of Labour' }, { name: 'CNESST Quebec', url: 'https://www.cnesst.gouv.qc.ca/en', desc: 'Quebec workplace safety commission' }, { name: 'WorkSafeNB', url: 'https://www.worksafenb.ca/', desc: 'New Brunswick workplace safety' }], usa: [{ name: 'OSHA', url: 'https://www.osha.gov/', desc: 'Occupational Safety and Health Administration' }, { name: 'OSHA Standards', url: 'https://www.osha.gov/laws-regs/regulations/standardnumber', desc: 'Complete OSHA regulations database' }, { name: 'OSHA eTools', url: 'https://www.osha.gov/etools', desc: 'Interactive safety guidance tools' }, { name: 'NIOSH', url: 'https://www.cdc.gov/niosh/', desc: 'National Institute for Occupational Safety & Health' }, { name: 'MSHA', url: 'https://www.msha.gov/', desc: 'Mine Safety and Health Administration' }], international: [{ name: 'ISO 45001', url: 'https://www.iso.org/iso-45001-occupational-health-and-safety.html', desc: 'International OH&S management standard' }, { name: 'ILO OSH', url: 'https://www.ilo.org/safework/', desc: 'International Labour Organization safety resources' }, { name: 'HSE UK', url: 'https://www.hse.gov.uk/', desc: 'UK Health and Safety Executive' }, { name: 'Safe Work Australia', url: 'https://www.safeworkaustralia.gov.au/', desc: 'Australian workplace safety' }], standards: [{ name: 'CSA Group', url: 'https://www.csagroup.org/', desc: 'Canadian Standards Association' }, { name: 'ANSI', url: 'https://www.ansi.org/', desc: 'American National Standards Institute' }, { name: 'NFPA', url: 'https://www.nfpa.org/', desc: 'National Fire Protection Association' }, { name: 'API', url: 'https://www.api.org/', desc: 'American Petroleum Institute standards' }, { name: 'ASTM', url: 'https://www.astm.org/', desc: 'International standards organization' }], training: [{ name: 'OSHA Training Institute', url: 'https://www.osha.gov/otiec', desc: 'Official OSHA training programs' }, { name: 'NSC - National Safety Council', url: 'https://www.nsc.org/', desc: 'Safety training and resources' }, { name: 'Red Cross First Aid', url: 'https://www.redcross.org/take-a-class/first-aid', desc: 'First aid certification' }, { name: 'St. John Ambulance', url: 'https://www.sja.ca/', desc: 'Canadian first aid training' }] };
+        // Restore emojis from original design
+        industries.splice(0, industries.length,
+            { id: "construction", name: "Construction", color: "#F59E0B", emoji: "🏗️", prompts: [
+                { label: "Fall Protection", query: "Fall protection requirements for heights above 6 feet", icon: "🪂" },
+                { label: "Scaffolding", query: "OSHA scaffolding safety requirements", icon: "🏗️" },
+                { label: "PPE Requirements", query: "What PPE is required on a construction site?", icon: "🦺" }
+            ] },
+            { id: "manufacturing", name: "Manufacturing", color: "#6366F1", emoji: "🏭", prompts: [
+                { label: "Machine Guarding", query: "Machine guarding requirements", icon: "⚙️" },
+                { label: "LOTO Procedures", query: "Lockout/tagout procedures step by step", icon: "🔒" },
+                { label: "Forklift Operations", query: "Powered industrial truck safety requirements", icon: "🚜" }
+            ] },
+            { id: "oilgas", name: "Oil & Gas", color: "#EF4444", emoji: "🛢️", prompts: [
+                { label: "H2S Safety", query: "H2S safety requirements and exposure limits", icon: "☠️" },
+                { label: "Hot Work Permits", query: "Hot work permit requirements", icon: "🔥" },
+                { label: "Confined Space", query: "Confined space entry requirements", icon: "🚪" }
+            ] },
+            { id: "healthcare", name: "Healthcare", color: "#EC4899", emoji: "🏥", prompts: [
+                { label: "Bloodborne Pathogens", query: "Bloodborne pathogen exposure control", icon: "🩸" },
+                { label: "Sharps Safety", query: "Sharps injury prevention requirements", icon: "💉" }
+            ] },
+            { id: "agriculture", name: "Agriculture", color: "#84CC16", emoji: "🌾", prompts: [
+                { label: "Tractor Safety", query: "Agricultural tractor and machinery safety", icon: "🚜" },
+                { label: "Grain Handling", query: "Grain bin and silo entry safety", icon: "🌾" }
+            ] },
+            { id: "warehouse", name: "Warehouse", color: "#8B5CF6", emoji: "📦", prompts: [
+                { label: "Forklift Safety", query: "Warehouse forklift operation requirements", icon: "🚜" },
+                { label: "Rack Safety", query: "Pallet rack safety and inspection", icon: "🗄️" }
+            ] }
+        );
+
+        navItems.splice(0, navItems.length,
+            { id: "query", icon: "🛡️", label: "Ask K.I.N.G." },
+            { id: "triggers", icon: "⚡", label: "Quick Triggers" },
+            { id: "resources", icon: "📚", label: "Resources" },
+            { id: "leaderboard", icon: "🏆", label: "Leaderboard" },
+            { id: "keys", icon: "🔑", label: "AI Providers" },
+            { id: "team", icon: "👥", label: "Team" },
+            { id: "usage", icon: "📈", label: "Analytics" },
+            { id: "audit", icon: "📋", label: "Audit Export" },
+            { id: "settings", icon: "⚙️", label: "Settings" }
+        );
+
+        emojiTriggers.splice(0, emojiTriggers.length,
+            { emoji: "🔥", action: "Fire safety and emergency procedures", cat: "Emergency" },
+            { emoji: "⚡", action: "Electrical safety requirements", cat: "Hazards" },
+            { emoji: "☠️", action: "Toxic substance handling", cat: "Hazards" },
+            { emoji: "🔒", action: "Lockout/Tagout procedures", cat: "Procedures" },
+            { emoji: "🦺", action: "PPE requirements", cat: "Equipment" },
+            { emoji: "🚨", action: "Emergency response procedures", cat: "Emergency" },
+            { emoji: "🧐", action: "Hazard identification", cat: "Hazards" },
+            { emoji: "🩹", action: "First aid procedures", cat: "Emergency" },
+            { emoji: "😷", action: "Respiratory protection", cat: "Equipment" },
+            { emoji: "🔊", action: "Hearing protection requirements", cat: "Equipment" },
+            { emoji: "🕶️", action: "Eye protection requirements", cat: "Equipment" },
+            { emoji: "🧤", action: "Hand protection requirements", cat: "Equipment" },
+            { emoji: "🥾", action: "Foot protection requirements", cat: "Equipment" },
+            { emoji: "🪜", action: "Ladder safety", cat: "Equipment" },
+            { emoji: "🏗️", action: "Scaffolding safety", cat: "Construction" },
+            { emoji: "🚜", action: "Heavy equipment safety", cat: "Equipment" },
+            { emoji: "🌬️", action: "Ventilation requirements", cat: "Environment" },
+            { emoji: "🔥❄️", action: "Heat/cold stress prevention", cat: "Environment" },
+            { emoji: "✅", action: "Safety inspection checklist", cat: "Procedures" },
+            { emoji: "📣", action: "Incident reporting procedures", cat: "Procedures" }
+        );
 
         function openMobileMenu() { document.getElementById('mobile-drawer').classList.add('open'); document.getElementById('mobile-overlay').classList.add('open'); renderMobileSidebar(); }
         function closeMobileMenu() { document.getElementById('mobile-drawer').classList.remove('open'); document.getElementById('mobile-overlay').classList.remove('open'); }
@@ -232,7 +349,11 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style>        * {
+<style>
+        .audit-page {
+            padding-top: 25px;
+        }
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box

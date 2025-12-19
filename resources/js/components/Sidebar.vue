@@ -32,16 +32,14 @@
       <button v-if="isOwner" @click="go('/usage')" :class="['nav-btn', isActive('/usage') && 'active']">&#x1F4CA; Analytics</button>
       <button v-if="isAdmin" @click="go('/audit')" :class="['nav-btn', isActive('/audit') && 'active']">&#x1F4CB; Audit Export</button>
       <button v-if="isOwner" @click="go('/settings')" :class="['nav-btn', isActive('/settings') && 'active']">&#x2699;&#xFE0F; Settings</button>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(71,85,105,0.3);">
+        <button
+          class="nav-btn"
+          @click="logout"
+          style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;background:transparent;color:#94a3b8;"
+        >&#x1F6AA; Logout</button>
+      </div>
     </nav>
-
-    <!-- Logout -->
-    <div style="padding:12px;border-top:1px solid rgba(71,85,105,0.3);">
-      <button
-        class="nav-btn"
-        @click="logout"
-        style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;background:transparent;color:#94a3b8;"
-      >&#x1F6AA; Logout</button>
-    </div>
   </aside>
 </template>
 
@@ -100,8 +98,6 @@ async function logout() {
   color: #22d3ee;
 }
 </style>
-
-
 
 
 

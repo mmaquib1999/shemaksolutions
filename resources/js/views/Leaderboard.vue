@@ -56,7 +56,45 @@
           <h3>Invite Challenge Active!</h3>
           <p>Invite 2 more team members and everyone gets a <span class="accent">20% discount</span> on upgrades.</p>
         </div>
-        <button class="btn">Invite</button>
+        <button class="btn" @click="openInvite">Invite</button>
+      </div>
+    </div>
+
+    <!-- Invite Modal (same as Teams) -->
+    <div v-if="showInvite" class="modal-overlay" @click.self="closeInvite">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Invite Teammate</h3>
+          <button class="ghost-btn" @click="closeInvite" aria-label="Close">x</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label class="label">Name</label>
+            <input v-model="inviteForm.name" type="text" class="input" placeholder="e.g., Jane Doe" />
+            <span v-if="inviteForm.errors.has('name')" class="error">{{ inviteForm.errors.get('name') }}</span>
+          </div>
+          <div class="field">
+            <label class="label">Email</label>
+            <input v-model="inviteForm.email" type="email" class="input" placeholder="name@company.com" />
+            <span v-if="inviteForm.errors.has('email')" class="error">{{ inviteForm.errors.get('email') }}</span>
+          </div>
+          <div class="field">
+            <label class="label">Role</label>
+            <select v-model="inviteForm.role" class="input">
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" @click="closeInvite">Cancel</button>
+          <button class="btn" @click="sendInvite" :disabled="inviteForm.busy">
+            <span v-if="inviteForm.busy">Sending...</span>
+            <span v-else>Send Invite</span>
+          </button>
+        </div>
+        <p v-if="inviteError" class="error">{{ inviteError }}</p>
+        <p v-if="inviteSuccess" class="success">{{ inviteSuccess }}</p>
       </div>
     </div>
   </div>
@@ -65,6 +103,7 @@
 <script setup>
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
+import { Form } from 'vform'
 
 const MAX_LEADERS = 5
 const fallbackMembers = [
@@ -76,6 +115,16 @@ const fallbackMembers = [
 ]
 
 const members = ref([])
+const showInvite = ref(false)
+const inviteError = ref('')
+const inviteSuccess = ref('')
+const inviteForm = ref(
+  new Form({
+    name: '',
+    email: '',
+    role: 'member',
+  })
+)
 
 onMounted(loadLeaderboard)
 
@@ -138,12 +187,70 @@ function badgesForRole(role, isOwner) {
   if (role === 'admin') return ['ppe']
   return []
 }
+
+function openInvite() {
+  inviteError.value = ''
+  inviteSuccess.value = ''
+  inviteForm.value.errors.clear()
+  showInvite.value = true
+}
+
+function closeInvite() {
+  inviteForm.value.errors.clear()
+  showInvite.value = false
+}
+
+function resetInviteForm() {
+  inviteForm.value.reset()
+}
+
+async function sendInvite() {
+  inviteError.value = ''
+  inviteSuccess.value = ''
+  inviteForm.value.errors.clear()
+
+  const name = inviteForm.value.name?.trim()
+  const email = inviteForm.value.email?.trim()
+
+  const fieldErrors = {}
+  if (!name) fieldErrors.name = ['Name is required.']
+  if (!email) fieldErrors.email = ['Email is required.']
+
+  if (Object.keys(fieldErrors).length) {
+    inviteForm.value.errors.set(fieldErrors)
+    inviteError.value = 'Please fix the highlighted fields.'
+    return
+  }
+
+  inviteForm.value.name = name
+  inviteForm.value.email = email
+
+  try {
+    await inviteForm.value.post('/api/team/invitations')
+    inviteSuccess.value = `Invite sent to ${inviteForm.value.email}`
+    resetInviteForm()
+    showInvite.value = false
+  } catch (error) {
+    inviteError.value = errorMessage(error)
+  }
+}
+
+function errorMessage(error) {
+  if (error?.response?.data?.errors) {
+    const first = Object.values(error.response.data.errors)[0]
+    if (Array.isArray(first) && first.length) return first[0]
+  }
+  if (error?.response?.data?.message) return error.response.data.message
+  if (error?.message) return error.message
+  return 'Something went wrong'
+}
 </script>
 
 <style scoped>
 .page {
   max-width: 900px;
   margin: 0 auto;
+  padding-top: 25px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -345,6 +452,97 @@ function badgesForRole(role, isOwner) {
   border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.btn-secondary {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 16px;
+  padding: 20px;
+  width: min(520px, 90vw);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.ghost-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #cbd5e1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e2e8f0;
+  padding: 10px 12px;
+}
+
+.error {
+  color: #f87171;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.success {
+  color: #22d3ee;
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 @media (max-width: 800px) {

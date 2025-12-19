@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap">
+  <div class="page-wrap mt-5">
     <!-- Emoji Quick Triggers -->
     <div class="card card-base">
       <h3 class="card-title">
@@ -468,6 +468,7 @@ onMounted(loadCategories)
 .page-wrap {
   max-width: 900px;
   margin: 0 auto;
+  padding-top: 25px;
   display: flex;
   flex-direction: column;
   gap: 20px;

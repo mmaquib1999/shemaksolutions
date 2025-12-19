@@ -140,7 +140,7 @@
               <div style="color:#cbd5e1;">Delete Account</div>
               <div style="color:#64748b;font-size:13px;">Permanently delete your account and all data</div>
             </div>
-            <button @click="confirmDeleteAccount" style="background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);color:#f87171;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:500;">Delete Account</button>
+            <button @click="confirmDeleteAccount" :disabled="deletingAccount" style="background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.5);color:#f87171;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:500;">{{ deletingAccount ? 'Deleting...' : 'Delete Account' }}</button>
           </div>
         </div>
       </div>
@@ -288,6 +288,7 @@ const availablePlans = ref([])
 const saving = ref(false)
 const status = ref("")
 const cardError = ref("")
+const deletingAccount = ref(false)
 const portalUrl = ref("")
 const portalError = ref("")
 const portalLoading = ref(false)
@@ -508,7 +509,30 @@ async function cancelSubscription() {
 }
 
 function confirmDeleteAccount() {
-  console.log("Delete account")
+  if (deletingAccount.value) return
+  const confirmed = confirm("Are you sure you want to delete your account? You will be logged out and must verify email to return.")
+  if (!confirmed) return
+
+  deletingAccount.value = true
+  status.value = ""
+  axios
+    .post("/api/account/delete")
+    .then(({ data }) => {
+      const message = data?.message || "Account flagged for deletion. Logging out..."
+      pushToast(message, "success")
+      // Redirect after logout response so session is cleared
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 300)
+    })
+    .catch((error) => {
+      const message = errorMessage(error) || "Could not delete account."
+      pushToast(message, "error")
+      status.value = message
+    })
+    .finally(() => {
+      deletingAccount.value = false
+    })
 }
 
 function closeModal() {

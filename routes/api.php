@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum', 'team.role:owner,admin'])->group(function () 
 Route::middleware(['auth:sanctum', 'team.role:owner'])->group(function () {
     Route::get('/account', [AccountController::class, 'show']);
     Route::put('/account', [AccountController::class, 'update']);
+    Route::post('/account/delete', [AccountController::class, 'softDelete']);
 
     Route::get('/team', [TeamController::class, 'index']);
     Route::post('/team/invitations', [TeamController::class, 'invite']);

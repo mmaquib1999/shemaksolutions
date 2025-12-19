@@ -60,7 +60,7 @@
 
     <div class="card highlight">
       <div class="challenge">
-        <div class="icon">XYZ%</div>
+      <div class="icon">🎉</div>
         <div class="copy">
           <h3>Invite Challenge Active!</h3>
           <p>Invite 2 more team members and everyone gets a <span class="accent">20% discount</span> on upgrades.</p>
@@ -305,6 +305,7 @@ function pushToast(message, type = 'success') {
 .page {
   max-width: 900px;
   margin: 0 auto;
+  padding-top: 25px;
   display: flex;
   flex-direction: column;
   gap: 16px;

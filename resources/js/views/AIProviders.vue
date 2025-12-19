@@ -424,6 +424,7 @@ export default {
 .providers-page {
   max-width: 880px;
   margin: 0 auto;
+  padding-top: 25px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -562,7 +563,7 @@ export default {
   height: 44px;
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(148, 163, 184, 0.08);
+  background: rgba(15, 23, 42, 0.9);
   color: #e2e8f0;
   padding: 10px 12px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -572,7 +573,12 @@ export default {
   outline: none;
   border-color: #22d3ee;
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
-  background: rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+:deep(select.input option) {
+  background: rgba(15, 23, 42, 0.95);
+  color: #e2e8f0;
 }
 
 .input-with-button {
