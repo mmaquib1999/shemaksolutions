@@ -12,6 +12,18 @@ services:
     depends_on:
       - mysql
 
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - app-data:/var/www/html
+    depends_on:
+      - mysql
+
   nginx:
     image: nginx:latest
     container_name: laravel-nginx
